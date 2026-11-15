@@ -1,5 +1,10 @@
 # Historial
 
+## 0.9.0
+- Tema claro además del oscuro: en Ficha, botón **CAMBIAR TEMA** (o en los ajustes de Eden Duo).
+  Eden Duo recuerda el tema elegido entre sesiones. Mismo diseño con fondo crema, paneles blancos
+  y casillas de tipos en tonos suaves.
+
 ## 0.8.2
 - Combate: búsqueda guiada del cursor de ataques del juego (botón CURSOR). Tocas el número del
   ataque donde está el cursor, lo mueves y repites; cuando queda una posición, el ataque marcado

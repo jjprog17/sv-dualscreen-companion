@@ -8,7 +8,7 @@
 | Empaquetador `.dsmod.zip` | `tools/third_party/build_dualscreen_package.py` | GPL-3.0-or-later | eden-duo-companions (`tools/build_dualscreen_package.py`) |
 | Fuente Barlow Condensed (atlas generado) | `art/barlow.mfnt`, `art/barlow.png` | SIL OFL 1.1 ([licencia](art/LICENSE-Barlow-OFL.txt)) | https://github.com/jpt/barlow |
 
-El arte de la interfaz (`art/`, `art_v/`) está dibujado por código en `tools/make_art.py`.
+El arte de la interfaz (`art/`, `art_v/` y su tema claro en `l/`) está dibujado por código en `tools/make_art.py`.
 
 **No se incluye nada del juego.** Nombres, textos, datos de especies y movimientos, iconos de
 objetos y Pokémon y el mapa se leen en tiempo de ejecución del romfs del propio jugador.

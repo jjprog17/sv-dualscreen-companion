@@ -2105,7 +2105,7 @@ LOCAL void publish_battle(void) {
     pi("sv.scan.pct", S.hi > S.lo ? (s64)((S.cur - S.lo) * 100 / (S.hi - S.lo)) : 0);
     {
         Str s; s_init(&s, g_val, sizeof(g_val));
-        s_cat(&s, "v0.8.2 mapa "); if (g.ow_ok) s_u(&s, g.ow_raw, 0); else s_cat(&s, "?");
+        s_cat(&s, "v0.9.0 mapa "); if (g.ow_ok) s_u(&s, g.ow_raw, 0); else s_cat(&s, "?");
         s_cat(&s, " (vistos");
         for (u32 i = 0; i < S.now_seen; ++i) { s_ch(&s, ' '); s_u(&s, S.ow_seen[i], 0); }
         s_cat(&s, ") | "); s_cat(&s, S.mode ? "COMBATE " : "campo "); s_u(&s, (u64)(S.hi > S.lo ? (S.cur - S.lo) * 100 / (S.hi - S.lo) : 0), 0);

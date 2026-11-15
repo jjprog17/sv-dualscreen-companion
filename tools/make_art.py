@@ -4,7 +4,7 @@ slanted panels and tabs like a sports broadcast, the game's colour as the accent
 and orange, Violet: violet and lilac), and colours that mean something in the matchups (red: it
 hurts it, green: it holds out, blue: no effect). Everything is drawn from code at 4x and
 downsampled for smooth edges.
-Usage: make_art.py out_dir [scarlet|violet]
+Usage: make_art.py out_dir [scarlet|violet] [light]
 """
 import math
 import os
@@ -33,15 +33,37 @@ THEMES = {
     "violet": {"acc": "#8B4DFF", "acc2": "#C9A2FF", "band": "#1E1838", "bg": BG, "panel": PANEL, "panel2": PANEL2,
                "dim": DIM, "cream": CREAM, "muted": MUTED, "gold": None, "tiles": False, "crystals": False},
 }
+# v0.9: a light theme of the same design (chosen in the companion: Ficha > CAMBIAR TEMA). Same
+# shapes and accents; cream page, white panels, dark ink, pale matchup tiles.
+LIGHT = {
+    "scarlet": {"acc": "#E8452C", "acc2": "#E8701A", "band": "#EEDFD2", "bg": "#F7EFE6", "panel": "#FFFFFF",
+                "panel2": "#F1E6DA", "dim": "#E6DCD2", "cream": "#FFF8F1", "muted": "#7A6468", "gold": "#C98A10",
+                "tiles": True, "crystals": True},
+    "violet": {"acc": "#8B4DFF", "acc2": "#7A4CD6", "band": "#E6E0F2", "bg": "#F4F1F8", "panel": "#FFFFFF",
+               "panel2": "#ECE7F4", "dim": "#E2DCEC", "cream": "#FBF8FF", "muted": "#6E6680", "gold": None,
+               "tiles": False, "crystals": False},
+}
 GOLD = None
 TILES = CRYSTALS = False
+INKA, KO, ZOFF, SELFILL, SELCARD = "#F6EFE6", "#3A3446", "#5A5468", "#3A2230", None
 
 
-def set_theme(th):
-    global BG, PANEL, PANEL2, DIM, CREAM, MUTED, GOLD, TILES, CRYSTALS
+def set_theme(th, light=False):
+    global BG, PANEL, PANEL2, DIM, CREAM, MUTED, GOLD, TILES, CRYSTALS, INKA, KO, ZOFF, SELFILL, SELCARD
+    global HURT, HURT2, HOLD, HOLD2, NONE
     BG, PANEL, PANEL2, DIM = th["bg"], th["panel"], th["panel2"], th["dim"]
     CREAM, MUTED, GOLD = th["cream"], th["muted"], th["gold"]
     TILES, CRYSTALS = th["tiles"], th["crystals"]
+    if light:
+        INKA, KO, ZOFF, SELFILL, SELCARD = "#2A1A1E", "#C9BDB3", "#B8ADA4", "#FCE3DA", "#FDE4DC"
+        HURT, HURT2 = ("#FBE1DD", "#E0503F"), ("#FDEDEA", "#E07A6E")
+        HOLD, HOLD2 = ("#DFF3E6", "#2E9A58"), ("#EDF8F1", "#5DBB84")
+        NONE = ("#DDF1F7", "#2A9CC0")
+    else:
+        INKA, KO, ZOFF, SELFILL, SELCARD = th["cream"], "#3A3446", "#5A5468", "#3A2230", None
+        HURT, HURT2 = ("#4A1A1E", "#FF6B5A"), ("#3A1A20", "#C2554A")
+        HOLD, HOLD2 = ("#16302A", "#4ED07A"), ("#10261F", "#2F9A58")
+        NONE = ("#13293A", "#6FE7FF")
 # matchup meanings: fill, edge
 HURT = ("#4A1A1E", "#FF6B5A")
 HURT2 = ("#3A1A20", "#C2554A")
@@ -262,7 +284,7 @@ def star(out, size=40):
 
 def ball_placeholder(out, size=128, col=None):
     """Shown where a Pokémon picture is missing: a faint ball outline."""
-    col = col or rgb(CREAM, 70)
+    col = col or rgb(INKA, 70)
     c = canvas(size, size)
     d = ImageDraw.Draw(c)
     s = size * SS
@@ -312,10 +334,10 @@ def mini_ball(out, size=30):
     d = ImageDraw.Draw(c)
     s = size * SS
     k = int(s * .08)
-    d.ellipse([s * .04, s * .04, s * .96, s * .96], fill=rgb(CREAM), outline=rgb(BG), width=k)
-    d.pieslice([s * .04, s * .04, s * .96, s * .96], 180, 360, fill=rgb("#E8452C"), outline=rgb(BG), width=k)
-    d.line([(s * .04, s / 2), (s * .96, s / 2)], fill=rgb(BG), width=k)
-    d.ellipse([s * .36, s * .36, s * .64, s * .64], fill=rgb(CREAM), outline=rgb(BG), width=int(s * .06))
+    d.ellipse([s * .04, s * .04, s * .96, s * .96], fill=rgb("#FFF8F1"), outline=rgb("#1C0E13"), width=k)
+    d.pieslice([s * .04, s * .04, s * .96, s * .96], 180, 360, fill=rgb("#E8452C"), outline=rgb("#1C0E13"), width=k)
+    d.line([(s * .04, s / 2), (s * .96, s / 2)], fill=rgb("#1C0E13"), width=k)
+    d.ellipse([s * .36, s * .36, s * .64, s * .64], fill=rgb("#FFF8F1"), outline=rgb("#1C0E13"), width=int(s * .06))
     done(c, out)
 
 
@@ -326,9 +348,9 @@ def matchup_frame(out, fill, edge, w=228, h=50):
     done(c, out)
 
 
-def main(out, game="scarlet"):
-    th = THEMES[game]
-    set_theme(th)
+def main(out, game="scarlet", light=False):
+    th = (LIGHT if light else THEMES)[game]
+    set_theme(th, light)
     acc, acc2, band = th["acc"], th["acc2"], th["band"]
     gold = GOLD or acc2
     for sub in ("t", "mv", "mvn", "bph", "gem"):
@@ -347,12 +369,12 @@ def main(out, game="scarlet"):
     splash(o("splash_v.png"), acc, acc2, band)
     # party
     party_card(o("card.png"), PANEL, acc)
-    party_card(o("card_sel.png"), acc, acc2, bottom=GOLD)
-    party_card(o("card_ko.png"), DIM, "#3A3446")
+    party_card(o("card_sel.png"), SELCARD or acc, acc2 if not SELCARD else acc, bottom=GOLD)
+    party_card(o("card_ko.png"), DIM, KO)
     sel_frame(o("sel.png"), acc2)
     for i, (_, col) in enumerate(TYPES):
         gem(o("gem", f"{i}.png"), col)
-    gem(o("gem_ko.png"), "#3A3446")
+    gem(o("gem_ko.png"), KO)
     # panels (same sizes as before)
     for name, w, h in (("panel.png", 600, 930), ("panel_s.png", 600, 300), ("panel_c.png", 800, 560),
                        ("panel_w.png", 960, 930), ("panel_tall.png", 284, 908), ("panel_d.png", 600, 862),
@@ -376,7 +398,7 @@ def main(out, game="scarlet"):
     save_para(o("rtab_on.png"), 194, 60, acc, slant=12)
     chip(o("itemcard.png"), 466, 92, fill=PANEL2, stripe=acc, slant=8)
     chip(o("dexcell.png"), 112, 150, fill=PANEL)
-    chip(o("dexcell_on.png"), 112, 150, fill="#3A2230", edge=acc2)
+    chip(o("dexcell_on.png"), 112, 150, fill=SELFILL, edge=acc2)
     arrow_button(o("btn_prev.png"), True, acc)
     arrow_button(o("btn_next.png"), False, acc)
     mini_ball(o("pball.png"))
@@ -397,8 +419,8 @@ def main(out, game="scarlet"):
     done(c, o("clockband.png"))
     c = canvas(150, 72)
     d = ImageDraw.Draw(c)
-    d.polygon(P([(10, 4), (136, 4), (128, 68), (2, 68)]), outline=rgb(CREAM), width=5 * SS)
-    d.polygon(P([(138, 24), (146, 24), (143, 48), (135, 48)]), fill=rgb(CREAM))
+    d.polygon(P([(10, 4), (136, 4), (128, 68), (2, 68)]), outline=rgb(INKA), width=5 * SS)
+    d.polygon(P([(138, 24), (146, 24), (143, 48), (135, 48)]), fill=rgb(INKA))
     done(c, o("battery.png"))
     c = canvas(40, 56)
     d = ImageDraw.Draw(c)
@@ -436,7 +458,7 @@ def main(out, game="scarlet"):
                            ("zout.png", False, True), ("zout_off.png", False, False)):
         c, d = para(96, 72, acc if on else PANEL2, slant=10)
         cx, cy = 48, 36
-        col = rgb(CREAM) if on else rgb("#5A5468")
+        col = rgb("#FFF8F1") if on else rgb(ZOFF)
         d.rectangle([(cx - 16) * SS, (cy - 3) * SS, (cx + 16) * SS, (cy + 3) * SS], fill=col)
         if plus:
             d.rectangle([(cx - 3) * SS, (cy - 16) * SS, (cx + 3) * SS, (cy + 16) * SS], fill=col)
@@ -447,7 +469,7 @@ def main(out, game="scarlet"):
     chip(o("sgcard.png"), 424, 204, fill=PANEL2, stripe=acc2)
     chip(o("sgrow.png"), 424, 124, fill=PANEL2)
     chip(o("pickcell.png"), 172, 142, fill=PANEL2)
-    chip(o("pickcell_g.png"), 172, 142, fill="#3A2230", edge=acc2)
+    chip(o("pickcell_g.png"), 172, 142, fill=SELFILL, edge=acc2)
     for name, up in (("chev_down.png", False), ("chev_up.png", True)):
         c = canvas(22, 16)
         d = ImageDraw.Draw(c)
@@ -523,4 +545,5 @@ def main(out, game="scarlet"):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "art", sys.argv[2] if len(sys.argv) > 2 else "scarlet")
+    main(sys.argv[1] if len(sys.argv) > 1 else "art", sys.argv[2] if len(sys.argv) > 2 else "scarlet",
+         len(sys.argv) > 3 and sys.argv[3] == "light")

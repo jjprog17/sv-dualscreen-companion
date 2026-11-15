@@ -30,7 +30,8 @@ pones tú).*
 
 Aspecto oscuro con paneles en diagonal y el color de cada juego: en Escarlata, fondo vino con
 azulejos de Paldea, rojo, naranja y el dorado de la Academia; en Púrpura, morado y lila. Una barra
-arriba muestra el lugar, el dinero, la batería y la hora.
+arriba muestra el lugar, el dinero, la batería y la hora. También hay un **tema claro**: botón **CAMBIAR TEMA** en la Ficha
+(Eden Duo lo recuerda).
 
 En combate, el botón **CURSOR** abre una búsqueda guiada de la posición del cursor del menú de
 ataques del juego (experimental): cuando la encuentra, el ataque marcado se resalta abajo.

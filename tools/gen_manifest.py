@@ -18,7 +18,7 @@ import pathlib
 import shutil
 import sys
 
-VERSION = "v0.8.2"
+VERSION = "v0.9.0"
 GAMES = {
     "PokemonScarlet": {"title_id": "0100A3D008C5C000", "name": "Pokemon Scarlet dual screen",
                         "title": "Pokémon Escarlata", "theme": "scarlet"},
@@ -30,7 +30,8 @@ THEMES = {"scarlet": ("#FFE8452C", "#FFFF8A1F", "#FFF2B544", "#FFFFF1E4", "#FFC4
           "violet": ("#FF8B4DFF", "#FFC9A2FF", "#FFC9A2FF", "#FFF6EFE6", "#FFA79FB5", "#FFCFC7DA", "#FF15131C")}
 
 W, H = 1240, 1080
-WHITE = "#FFFFFFFF"
+WHITE = "#FFFFFFFF"    # text on the accent (tabs, buttons, type badges): white in both themes
+HEAD = "#FFFEFEFE"     # headings on the panels: white in the dark theme, dark ink in the light one
 INK = "#FFF6EFE6"      # main text (cream on the dark panels)
 GREY = "#FFA79FB5"     # labels
 SOFT = "#FFCFC7DA"     # secondary text
@@ -132,9 +133,9 @@ def clock_widgets(x_end=1214, y=10):
     CK = gate_card("ui.c.clock", "@clock.year > 2000")
     BAT = gate_card("ui.c.bat", "@device.battery_present && @device.battery_pct >= 0")
     return [
-        val([x_end - 124, y, 60, 0], "@clock.hour", scale=9, color=WHITE, pad=2, align="right", need_bind=CK, **IT),
-        lab([x_end - 61, y - 2, 12, 46], ":", scale=9, color=WHITE, need_bind=CK),
-        val([x_end - 50, y, 0, 0], "@clock.minute", scale=9, color=WHITE, pad=2, need_bind=CK, **IT),
+        val([x_end - 124, y, 60, 0], "@clock.hour", scale=9, color=HEAD, pad=2, align="right", need_bind=CK, **IT),
+        lab([x_end - 61, y - 2, 12, 46], ":", scale=9, color=HEAD, need_bind=CK),
+        val([x_end - 50, y, 0, 0], "@clock.minute", scale=9, color=HEAD, pad=2, need_bind=CK, **IT),
         img([x_end - 272, y + 10, 50, 24], A("battery.png"), need_bind=BAT),
         bar([x_end - 266, y + 15, 36, 14], "@device.battery_pct", "#FF4ED07A", mx=100, bg="#00000000", need_bind=BAT),
         val([x_end - 138, y + 8, 0, 0], "@device.battery_pct", scale=6, color=SOFT, align="right", suffix=" %",
@@ -173,7 +174,7 @@ def party_cards():
         r(img([X + 22, Y + 8, 100, 114], A("gem_ko.png")), "sv.p{i}.fainted"),
         r(img([X + 38, Y + 30, 68, 68], A("ball_ph.png"), hide_bind="sv.p{i}.has_spr", keep_max=0)),
         r(img([X + 8, Y - 2, 128, 128], bind="sv.p{i}.spr", src_format=SPRITE), "sv.p{i}.has_spr"),
-        r(lab([X + 140, Y + 5, 300, 44], bind="sv.p{i}.name", scale=9, color=WHITE, **IT)),
+        r(lab([X + 140, Y + 5, 300, 44], bind="sv.p{i}.name", scale=9, color=HEAD, **IT)),
         r(img([X + 404, Y + 16, 28, 28], A("star.png")), "sv.p{i}.shiny"),
         r(img([X + 436, Y + 16, 28, 28], A("g0.png")), "sv.p{i}.male"),
         r(img([X + 436, Y + 16, 28, 28], A("g1.png")), "sv.p{i}.female"),
@@ -188,7 +189,7 @@ def party_cards():
         r(lab([X + 358, Y + 85, 92, 18], bind="sv.d{i}.t2n", scale=3, color=WHITE, align="center"), "sv.d{i}.dual"),
         r(lab([X + 140, Y + 110, 120, 18], bind="sv.p{i}.st", scale=3, color="#FFFFD166")),
         r(lab([X + 474, Y + 14, 60, 20], "NV.", scale=3, color=GREY)),
-        r(val([X + 476, Y + 40, 64, 60], "sv.p{i}.level", scale=12, color=WHITE, align="right", **IT)),
+        r(val([X + 476, Y + 40, 64, 60], "sv.p{i}.level", scale=12, color=HEAD, align="right", **IT)),
         r(tap([X, Y, 560, 130], "sel{i}")),
     ]
     return out
@@ -200,7 +201,7 @@ def detail_template():
     out = [
         img([X, Y, 600, 862], A("panel_d.png"), **V),
         lab([X + 22, Y + 8, 300, 22], "FICHA", scale=3, color=GOLD, **V),
-        lab([X + 22, Y + 30, 440, 56], bind="sv.sel.name", scale=11, color=WHITE, **IT, **V),
+        lab([X + 22, Y + 30, 440, 56], bind="sv.sel.name", scale=11, color=HEAD, **IT, **V),
         lab([X + 470, Y + 14, 50, 20], "NV.", scale=3, color=GREY, **V),
         val([X + 476, Y + 30, 104, 56], "sv.sel.level", scale=11, color=ACC2, align="right", **IT, **V),
         img([X + 50, Y + 120, 140, 140], A("ball_ph.png"), need_bind="sv.sel.valid", hide_bind="sv.sel.has_spr",
@@ -237,7 +238,7 @@ def detail_template():
         out += [
             img([X + 20, y, 560, 104], bind=f"sv.sel.m{j}.t", src_names=MOVE_SRC, **g),
             img([X + 38, y + 29, 46, 46], bind=f"sv.sel.m{j}.cat", src_names=CAT_SRC, **g),
-            lab([X + 98, y + 14, 300, 36], bind=f"sv.sel.m{j}.name", scale=7, color=WHITE, **IT, **g),
+            lab([X + 98, y + 14, 300, 36], bind=f"sv.sel.m{j}.name", scale=7, color=HEAD, **IT, **g),
             img([X + 98, y + 60, 124, 30], bind=f"sv.sel.m{j}.t", src_names=TYPE_SRC, **g),
             lab([X + 98, y + 66, 124, 20], bind=f"sv.sel.m{j}.tn", scale=3, color=WHITE, align="center", **g),
             lab([X + 236, y + 64, 140, 24], bind=f"sv.sel.m{j}.pow", scale=4, color=GREY, **g),
@@ -257,7 +258,7 @@ def detail_template():
         out += [
             lab([X + 34, y, 190, 34], name, scale=6, color=SOFT, need_bind=D),
             bar([X + 210, y + 8, 260, 22], f"sv.sel.stat{k}", ACC if k != 1 else ACC2, mx=400, need_bind=D),
-            val([X + 478, y - 6, 100, 44], f"sv.sel.stat{k}", scale=8, color=WHITE, align="right", **IT, need_bind=D),
+            val([X + 478, y - 6, 100, 44], f"sv.sel.stat{k}", scale=8, color=HEAD, align="right", **IT, need_bind=D),
         ]
     # Weaknesses tab: red = hurts it, green = it holds out, blue = no effect
     WK = "sv.dtab.weak"
@@ -348,7 +349,7 @@ def battle_page():
         img([1010, 142, 128, 128], A("ball_ph.png"), hide_bind=O + "has_spr", keep_max=0),
         img([974, 106, 200, 200], bind=O + "spr", src_format=SPRITE, need_bind=O + "has_spr"),
         img([948, 76, 34, 34], A("star.png"), need_bind=O + "shiny"),
-        lab([24, 140, 880, 90], bind=O + "name", scale=18, color=WHITE, **IT, need_bind=O + "valid"),
+        lab([24, 140, 880, 90], bind=O + "name", scale=18, color=HEAD, **IT, need_bind=O + "valid"),
         lab([24, 150, 880, 60], "Buscando al rival…", scale=12, color=SOFT, **IT, hide_bind=O + "valid", keep_max=0),
         img([862, 160, 40, 40], A("g0.png"), need_bind=O + "male"),
         img([862, 160, 40, 40], A("g1.png"), need_bind=O + "female"),
@@ -378,7 +379,7 @@ def battle_page():
     for band, col in HP_COLORS:
         w.append(bar([24, 302, 680, 26], O + "hp", col, max_bind=O + "hpmax",
                      need_bind=bgate(f"ui.b.{O}{band}", f"{O}full && {O}{band}")))
-    w.append(val([900, 292, 0, 0], O + "hp", scale=8, color=WHITE, align="right", max_bind=O + "hpmax",
+    w.append(val([900, 292, 0, 0], O + "hp", scale=8, color=HEAD, align="right", max_bind=O + "hpmax",
                  max_sep="/", **IT, need_bind=O + "full"))
     # chosen by species: you set its level; HP, ability and item unknown
     SP = bgate("ui.b.sponly", "sv.opp.valid && !sv.opp.full")
@@ -454,7 +455,7 @@ def battle_page():
     # -- you
     w += [
         lab([24, 800, 300, 22], "TU POKÉMON", scale=4, color=GOLD, need_bind=M + "valid"),
-        lab([24, 826, 330, 56], bind=M + "name", scale=11, color=WHITE, **IT, need_bind=M + "valid"),
+        lab([24, 826, 330, 56], bind=M + "name", scale=11, color=HEAD, **IT, need_bind=M + "valid"),
         img([170, 798, 26, 26], A("g0.png"), need_bind=M + "male"),
         img([170, 798, 26, 26], A("g1.png"), need_bind=M + "female"),
         lab([24, 896, 60, 28], "NV.", scale=5, color=GREY, **IT, need_bind=M + "valid"),
@@ -489,7 +490,7 @@ def battle_page():
         st = bgate(f"ui.b.m{j}s", f"sv.sugg.open == 0 && {M}m{j}.valid && {M}m{j}.cat == 0")
         w += [
             img([X2, y, 862, 48], bind=f"{M}m{j}.t", src_names=MOVEN_SRC, need_bind=need),
-            lab([X2 + 28, y + 9, 330, 32], bind=f"{M}m{j}.name", scale=7, color=WHITE, **IT, need_bind=need),
+            lab([X2 + 28, y + 9, 330, 32], bind=f"{M}m{j}.name", scale=7, color=HEAD, **IT, need_bind=need),
             img([X2 + 360, y + 10, 112, 28], bind=f"{M}m{j}.t", src_names=TYPE_SRC, need_bind=need),
             lab([X2 + 360, y + 15, 112, 20], bind=f"{M}m{j}.tn", scale=3, color=WHITE, align="center", need_bind=need),
             lab([X2 + 484, y + 12, 110, 28], bind=f"{M}m{j}.pp", scale=5, color=SOFT, need_bind=need),
@@ -512,7 +513,7 @@ def battle_page():
             img([x, y, 282, 204], A("sgcard.png"), need_bind=card),
             img([x + 16, y + 10, 52, 52], A("ball_ph.png"), need_bind=g2("ph", f"!{Pf}has_spr")),
             img([x + 8, y + 2, 68, 68], bind=Pf + "spr", src_format=SPRITE, need_bind=g2("sp", f"{Pf}has_spr")),
-            lab([x + 80, y + 10, 190, 34], bind=Pf + "name", scale=7, color=WHITE, **IT, need_bind=card),
+            lab([x + 80, y + 10, 190, 34], bind=Pf + "name", scale=7, color=HEAD, **IT, need_bind=card),
             img([x + 190, y + 46, 80, 30], A("best.png"), need_bind=g2("b", f"{Pf}best")),
             lab([x + 190, y + 50, 80, 22], "MEJOR", scale=4, color=DARK, align="center", **IT, need_bind=f"ui.b.s{k}b"),
         ]
@@ -562,7 +563,7 @@ def battle_page():
     PO = "sv.pick.open"
     w += [
         img([18, 76, 1204, 900], A("bover.png"), need_bind=PO),
-        lab([X, Y + 4, 720, 50], "¿CONTRA QUIÉN LUCHAS?", scale=10, color=WHITE, **IT, need_bind=PO),
+        lab([X, Y + 4, 720, 50], "¿CONTRA QUIÉN LUCHAS?", scale=10, color=HEAD, **IT, need_bind=PO),
         lab([X, Y + 66, 720, 30], "Toca el Pokémon del combate (el más probable va primero).",
             scale=4, color=GREY, need_bind=PO),
         lab([X, Y + 140, 720, 40], "Buscando Pokémon cerca...", scale=6, color=GREY,
@@ -593,7 +594,7 @@ def battle_page():
     SO, SL, SI = "sv.sp.open", "sv.sp.letters", "sv.sp.listing"
     w += [
         img([18, 76, 1204, 900], A("bover.png"), need_bind=SO),
-        lab([X, Y + 4, 520, 50], "BUSCAR POR NOMBRE", scale=10, color=WHITE, **IT, need_bind=SO),
+        lab([X, Y + 4, 520, 50], "BUSCAR POR NOMBRE", scale=10, color=HEAD, **IT, need_bind=SO),
         img([X + 560, Y + 8, 170, 44], A("pill.png"), need_bind=SO),
         lab([X + 560, Y + 16, 170, 28], "VOLVER", scale=5, color=WHITE, align="center", **IT, need_bind=SO),
         tap([X + 556, Y + 2, 178, 56], "sp_back", need_bind=SO),
@@ -643,14 +644,15 @@ def bag_page():
         w += [
             img([x, y, 228, 78], A("pouch.png"), hide_bind=f"ui.pouch{p}", keep_max=0),
             img([x, y, 228, 78], A("pouch_on.png"), need_bind=f"ui.pouch{p}"),
-            lab([x + 18, y + 24, 170, 30], label, scale=6, color=WHITE, **IT),
+            lab([x + 18, y + 24, 170, 30], label, scale=6, color=WHITE, **IT, need_bind=f"ui.pouch{p}"),
+            lab([x + 18, y + 24, 170, 30], label, scale=6, color=SOFT, **IT, hide_bind=f"ui.pouch{p}", keep_max=0),
             val([x + 206, y + 28, 0, 0], f"sv.bag.pc{p}", scale=4, color=SOFT, align="right"),
             tap([x, y, 228, 78], f"bagp{p}"),
         ]
     X, Y = 262, 78
     w.append(img([X, Y, 960, 870], A("panel_dw.png")))
     for p, title in enumerate(POUCHES):
-        w.append(lab([X + 24, Y + 14, 640, 50], title.upper(), scale=10, color=WHITE, **IT, need_bind=f"ui.pouch{p}"))
+        w.append(lab([X + 24, Y + 14, 640, 50], title.upper(), scale=10, color=HEAD, **IT, need_bind=f"ui.pouch{p}"))
     w += [
         val([X + 936, Y + 20, 0, 0], "sv.bag.page", scale=7, color=ACC2, align="right", max_bind="sv.bag.pages",
             max_sep=" / ", **IT, need_bind="sv.bag.ok"),
@@ -685,7 +687,9 @@ def dex_page():
         w += [
             img([x, 76, 194, 60], A("rtab.png"), hide_bind=f"ui.region{r}", keep_max=0),
             img([x, 76, 194, 60], A("rtab_on.png"), need_bind=f"ui.region{r}"),
-            lab([x, 90, 194, 34], name.upper(), scale=7, color=WHITE, align="center", **IT),
+            lab([x, 90, 194, 34], name.upper(), scale=7, color=WHITE, align="center", **IT, need_bind=f"ui.region{r}"),
+            lab([x, 90, 194, 34], name.upper(), scale=7, color=SOFT, align="center", **IT, hide_bind=f"ui.region{r}",
+                keep_max=0),
             tap([x, 76, 194, 60], f"dexr{r}"),
         ]
         w += [
@@ -724,7 +728,7 @@ def dex_page():
     D = "sv.dx."
     w += [
         img([X, Y, 600, 870], A("panel_dx.png")),
-        lab([X + 22, Y + 18, 400, 56], bind=D + "name", scale=11, color=WHITE, **IT, need_bind=D + "valid"),
+        lab([X + 22, Y + 18, 400, 56], bind=D + "name", scale=11, color=HEAD, **IT, need_bind=D + "valid"),
         lab([X + 470, Y + 20, 50, 20], "Nº", scale=4, color=GREY, need_bind=D + "valid"),
         val([X + 580, Y + 22, 0, 0], D + "num", scale=10, color=ACC2, align="right", pad=3, **IT, need_bind=D + "valid"),
         img([X + 50, Y + 120, 140, 140], A("ball_ph.png"), need_bind=D + "valid", hide_bind=D + "known", keep_max=0),
@@ -768,13 +772,13 @@ def map_page():
          dict(img([MX - 32, MY - 32, 64, 64], A("me_arrow.png"), need_bind="sv.map.arrow",
                   x_bind="sv.map.mx", y_bind="sv.map.my"), rotate_bind="sv.map.heading"),
          dict(img([MX + MS - 124, MY + 16, 108, 108], A("compass.png")), rotate_bind="sv.map.north"),
-         lab([MX + MS - 70, MY + 20, 0, 22], "N", scale=4, color=WHITE, align="center", hide_bind="sv.map.rot", keep_max=0),
+         lab([MX + MS - 70, MY + 20, 0, 22], "N", scale=4, color=HEAD, align="center", hide_bind="sv.map.rot", keep_max=0),
          lab([MX + MS - 70, MY + 98, 0, 22], "S", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0),
          lab([MX + MS - 110, MY + 59, 0, 22], "O", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0),
          lab([MX + MS - 31, MY + 59, 0, 22], "E", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0)]
     X, Y = 942, 22
     w += [img([X, Y, 284, 908], A("panel_tall.png")),
-          lab([X + 18, Y + 12, 240, 50], "MAPA", scale=11, color=WHITE, **IT),
+          lab([X + 18, Y + 12, 240, 50], "MAPA", scale=11, color=HEAD, **IT),
           lab([X + 20, Y + 76, 240, 22], "ESTÁS EN", scale=3, color=GREY),
           lab([X + 20, Y + 100, 248, 36], bind="sv.map.place", scale=7, color=INK, **IT, wrap_width=244, max_lines=3),
           lab([X + 20, Y + 214, 240, 30], bind="sv.map.field", scale=5, color=ACC2, **IT),
@@ -867,9 +871,9 @@ def trainer_page(game_key="PokemonScarlet"):
     MO = ["", "de enero", "de febrero", "de marzo", "de abril", "de mayo", "de junio", "de julio", "de agosto",
           "de septiembre", "de octubre", "de noviembre", "de diciembre"]
     w += [img([CX, CY, 1200, 214], A("clockband.png")),
-          val([CX + 44, CY + 18, 0, 0], "@clock.hour", scale=20, color=WHITE, pad=2, need_bind=CK, **IT),
-          lab([CX + 176, CY + 12, 40, 110], ":", scale=20, color=WHITE, need_bind=CK),
-          val([CX + 206, CY + 18, 0, 0], "@clock.minute", scale=20, color=WHITE, pad=2, need_bind=CK, **IT),
+          val([CX + 44, CY + 18, 0, 0], "@clock.hour", scale=20, color=HEAD, pad=2, need_bind=CK, **IT),
+          lab([CX + 160, CY + 12, 40, 110], ":", scale=20, color=HEAD, need_bind=CK),
+          val([CX + 192, CY + 18, 0, 0], "@clock.minute", scale=20, color=HEAD, pad=2, need_bind=CK, **IT),
           dict(val([CX + 300, CY + 150, 0, 0], "@clock.wday", scale=7, color=SOFT, align="right", need_bind=CK, **IT), names=WD),
           val([CX + 334, CY + 150, 0, 0], "@clock.day", scale=7, color=SOFT, align="center", need_bind=CK, **IT),
           dict(val([CX + 364, CY + 150, 0, 0], "@clock.month", scale=7, color=SOFT, need_bind=CK, **IT), names=MO),
@@ -878,6 +882,10 @@ def trainer_page(game_key="PokemonScarlet"):
           val([CX + 500, CY + 40, 0, 0], "@perf.fps", scale=4, color=GREY, suffix=" FPS", need_bind="@perf.fps"),
           dict(val([CX + 500, CY + 74, 0, 0], "@game.seconds", scale=4, color=GREY, suffix=" min de sesión",
                    need_bind="@game.seconds"), div=60)]
+    # the light / dark theme (kept between sessions: "settings" below makes the flag persistent)
+    w += [img([CX + 962, CY + 156, 220, 44], A("pill.png")),
+          lab([CX + 962, CY + 164, 220, 28], "CAMBIAR TEMA", scale=5, color=WHITE, align="center", **IT),
+          tap([CX + 956, CY + 150, 232, 58], "theme_toggle")]
     BX, BY = CX + 830, CY + 46
     w += [img([BX, BY, 150, 72], A("battery.png"), need_bind=BAT)]
     for band, expr, col in (("low", "<= 20", "#FFFF5A47"), ("mid", "> 20 && @device.battery_pct <= 50", "#FFFFC23A"),
@@ -885,7 +893,7 @@ def trainer_page(game_key="PokemonScarlet"):
         g = gate_card("ui.c.bat" + band, "@device.battery_present && @device.battery_pct " + expr)
         w.append(bar([BX + 14, BY + 12, 106, 44], "@device.battery_pct", col, mx=100, bg="#00000000", need_bind=g))
     w += [img([BX + 44, BY + 8, 40, 56], A("bolt.png"), need_bind="@device.charging"),
-          val([BX + 350, BY + 4, 0, 0], "@device.battery_pct", scale=11, color=WHITE, align="right", suffix=" %",
+          val([BX + 350, BY + 4, 0, 0], "@device.battery_pct", scale=11, color=HEAD, align="right", suffix=" %",
               need_bind=BAT, **IT),
           lab([BX + 2, BY + 92, 300, 30], "CARGANDO", scale=5, color="#FFFFD166", **IT, need_bind="@device.charging"),
           lab([BX + 2, BY + 92, 300, 30], "BATERÍA BAJA", scale=5, color=HURT_T, **IT,
@@ -896,7 +904,7 @@ def trainer_page(game_key="PokemonScarlet"):
           lab([TX + 30, TY + 18, 700, 44], "LICENCIA DE ENTRENADOR", scale=9, color=WHITE, **IT),
           lab([TX + 1170, TY + 26, 0, 30], GAMES[game_key]["title"].upper(), scale=5, color=SOFT, align="right", **IT),
           lab([TX + 34, TY + 94, 200, 22], "NOMBRE", scale=3, color=GREY),
-          lab([TX + 34, TY + 116, 560, 60], bind="sv.trainer", scale=11, color=WHITE, **IT),
+          lab([TX + 34, TY + 116, 560, 60], bind="sv.trainer", scale=11, color=HEAD, **IT),
           lab([TX + 640, TY + 94, 200, 22], "ID", scale=3, color=GREY),
           val([TX + 640, TY + 116, 0, 0], "sv.tid", scale=11, color=ACC2, pad=6, **IT)]
     tiles = [("DINERO", "sv.money", None, None), ("PUNTOS DE LIGA", "sv.lp", None, None),
@@ -952,6 +960,130 @@ def anchor_text(pages):
 HAVE_COVER = False
 
 
+# ---------------------------------------------------------------- light theme (v0.9)
+# Every widget whose look depends on the theme is written twice: the dark one as built above
+# and a light copy (light colours, pictures from art/l/), each shown only in its theme. The
+# theme is the flag "theme" (0 dark, 1 light). A widget that already uses need_bind and
+# hide_bind gets a derived gate "<need> and theme"; a repeated one is first unrolled.
+ART_DIR = pathlib.Path("art")
+THEME_GATES = []
+_GATE_NAMES = set()
+LIGHT_COLORS = {
+    "scarlet": {"#FFF1E4": "#2A1A1E", "#C4A7A9": "#7A6468", "#E3CFC8": "#4A3438", "#FEFEFE": "#241216",
+                "#F2B544": "#A8740A", "#FF8A1F": "#D2600A", "#FF9A8C": "#C0392B", "#8FE3B0": "#23804A",
+                "#9FEFFF": "#1C7FA0", "#FFD166": "#A8740A", "#FFE08A": "#8A6A00", "#B8F0FF": "#2A6A80",
+                "#FFE6D8": "#7A4A30", "#1C0E13": "#E6DCD2"},
+    "violet": {"#F6EFE6": "#221C2E", "#A79FB5": "#6E6680", "#CFC7DA": "#4A4258", "#FEFEFE": "#1E1830",
+               "#C9A2FF": "#6A3CC6", "#FF9A8C": "#C0392B", "#8FE3B0": "#23804A", "#9FEFFF": "#1C7FA0",
+               "#FFD166": "#A8740A", "#FFE08A": "#8A6A00", "#B8F0FF": "#2A6A80", "#FFE6D8": "#5A4A70",
+               "#15131C": "#E2DCEC"},
+}
+
+
+def _lcol(c, cmap):
+    """ARGB "#AARRGGBB" -> its light-theme colour (alpha kept), or None when unchanged."""
+    if not isinstance(c, str) or len(c) != 9:
+        return None
+    rgb = "#" + c[3:].upper()
+    if rgb in cmap:
+        return c[:3] + cmap[rgb][1:]
+    if rgb == "#FFFFFF" and c[:3] != "#FF":   # translucent white text (the version line)
+        return c[:3] + "241216"
+    return None
+
+
+def _lsrc(src):
+    if not isinstance(src, str) or not src.startswith("file:art/"):
+        return None
+    rel = src[len("file:art/"):]
+    dark, light = ART_DIR / rel, ART_DIR / "l" / rel
+    if not light.exists() or (dark.exists() and dark.read_bytes() == light.read_bytes()):
+        return None
+    return "file:art/l/" + rel
+
+
+def _light_copy(w, cmap):
+    lw, changed = copy.deepcopy(w), False
+    if w.get("type") in ("label", "value"):
+        c = _lcol(w.get("color"), cmap)
+        if c:
+            lw["color"], changed = c, True
+    elif w.get("type") == "image":
+        if "src" in w:
+            ls = _lsrc(w["src"])
+            if ls:
+                lw["src"], changed = ls, True
+        if "src_names" in w:
+            names = [(_lsrc(x) or x) for x in w["src_names"]]
+            if names != w["src_names"]:
+                lw["src_names"], changed = names, True
+    elif w.get("type") == "bar":
+        c = _lcol(w.get("bg"), cmap)
+        if c:
+            lw["bg"], changed = c, True
+    return lw if changed else None
+
+
+def _unroll(w):
+    out = []
+    for i in range(w["repeat"]):
+        txt = json.dumps({k: v for k, v in w.items() if not k.startswith("repeat")}, ensure_ascii=False)
+        c = json.loads(txt.replace("{i}", str(i)))
+        x, y = c["rect"][0], c["rect"][1]
+        if w.get("repeat_cols"):
+            x += (i % w["repeat_cols"]) * w.get("repeat_dx", 0)
+            y += (i // w["repeat_cols"]) * w.get("repeat_row_dy", 0)
+        else:
+            x += i * w.get("repeat_dx", 0)
+            y += i * w.get("repeat_dy", 0)
+        c["rect"] = [x, y] + c["rect"][2:]
+        out.append(c)
+    return out
+
+
+def _gated(w, light):
+    w = copy.deepcopy(w)
+    if "hide_bind" not in w:
+        w.pop("keep_min", None)
+        w.pop("keep_max", None)
+        w["hide_bind"] = "ui.light"
+        if light:
+            w["keep_min"] = 1
+        else:
+            w["keep_max"] = 0
+        return [w]
+    if "need_bind" not in w:
+        w["need_bind"] = "ui.light" if light else "ui.dark"
+        return [w]
+    if "{i}" in w["need_bind"] and w.get("repeat"):
+        return [x for c in _unroll(w) for x in _gated(c, light)]
+    need = w["need_bind"]
+    name = ("ui.L|" if light else "ui.D|") + need
+    if name not in _GATE_NAMES:
+        _GATE_NAMES.add(name)
+        THEME_GATES.append({"name": name, "expr": f"({need}) && " + ("ui.light" if light else "!ui.light")})
+    w["need_bind"] = name
+    return [w]
+
+
+def themeify(pages, theme):
+    THEME_GATES.clear()
+    _GATE_NAMES.clear()
+    THEME_GATES.extend([{"name": "ui.light", "cmp": "eq", "a": "@flag:theme", "b": 1},
+                        {"name": "ui.dark", "cmp": "eq", "a": "@flag:theme", "b": 0}])
+    cmap = LIGHT_COLORS[theme]
+    for page in pages:
+        out = []
+        for w in page["widgets"]:
+            lw = _light_copy(w, cmap)
+            if lw is None:
+                out.append(w)
+            else:
+                out += _gated(w, False) + _gated(lw, True)
+        page["widgets"] = out
+    return pages
+
+
 def manifest(game_key):
     g = GAMES[game_key]
     set_theme(g["theme"])
@@ -960,6 +1092,7 @@ def manifest(game_key):
     actions = {f"sel{i}": {"kind": "flag", "flag": "sel", "value": i} for i in range(6)}
     actions.update({f"dtab{k}": {"kind": "flag", "flag": "dtab", "value": k} for k in range(3)})
     actions.update(page_actions())
+    actions["theme_toggle"] = {"kind": "flag", "flag": "theme", "cycle": 2}
     for key, _ in TABS:
         actions[f"go_{key}"] = {"kind": "page", "page": key, "transition": "fade", "duration_ms": 160}
     party = [img([0, 0, W, H], A("bg.png"))] + top_bar() + party_cards() + detail_sheets() + [
@@ -988,7 +1121,7 @@ def manifest(game_key):
     else:
         waiting = [
             img([0, 0, W, H], A("splash_v.png")),
-            lab([96, 330, 900, 100], g["title"].upper(), scale=20, color=WHITE, **IT),
+            lab([96, 330, 900, 100], g["title"].upper(), scale=20, color=HEAD, **IT),
             lab([100, 450, 820, 44], "COMPAÑERO DE DOBLE PANTALLA", scale=9, color=ACC2, **IT),
             lab([100, 530, 820, 34], "Carga tu partida: aquí verás tu equipo", scale=6, color=SOFT),
             lab([100, 570, 820, 34], "y, en combate, la ficha del rival.", scale=6, color=SOFT),
@@ -996,7 +1129,7 @@ def manifest(game_key):
             lab([1060, 1040, 160, 24], VERSION, scale=4, color="#B0FFFFFF", align="right"),
         ]
 
-    pages = anchor_text([
+    pages = themeify(anchor_text([
         {"id": "waiting", "widgets": waiting},
         {"id": "party", "widgets": party},
         dex_page(),
@@ -1004,7 +1137,7 @@ def manifest(game_key):
         map_page(),
         trainer_page(game_key),
         battle_page(),
-    ])
+    ]), g["theme"])
     return {
         "format": 1,
         "title_id": g["title_id"],
@@ -1022,13 +1155,16 @@ def manifest(game_key):
         "background": PAGE_BG,
         "font": "file:font/barlow.mfnt",
         "font_atlas": "file:font/barlow.png",
-        "flags": {"sel": 0, "dtab": 0},
+        "flags": {"sel": 0, "dtab": 0, "theme": 0},
+        # runtime 17: the theme as a setting, so Eden Duo keeps it between sessions
+        "settings": [{"flag": "theme", "label": "Tema", "type": "choice", "choices": ["Oscuro", "Claro"],
+                      "default": 0}],
         # Which slot / detail tab is shown is decided here, not by the module: on some runtimes
         # a module's sample() runs before the tick's flags are published and only ever sees the
         # default (the Super Mario Odyssey module documents the same). Derived values are
         # evaluated after the flags, in this order.
         "derived": derived_gates() + page_gates() + [{"name": k, "expr": v} for k, v in BATTLE_GATES.items()]
-                   + [{"name": k, "expr": v} for k, v in CARD_GATES.items()],
+                   + [{"name": k, "expr": v} for k, v in CARD_GATES.items()] + THEME_GATES,
         "debug_page": True,
         "actions": actions,
         "pages": pages,
@@ -1048,6 +1184,7 @@ def main(root, art):
     global HAVE_COVER
     root, art = pathlib.Path(root), pathlib.Path(art)
     HAVE_COVER = (art / "splash_s.png").exists()
+    global ART_DIR
     for key in GAMES:
         d = root / key / "dualscreen"
         src = art if GAMES[key]["theme"] == "scarlet" else pathlib.Path(str(art) + "_v")
@@ -1062,6 +1199,7 @@ def main(root, art):
         for f in ["barlow.mfnt", "barlow.png"]:
             shutil.copy(art / f, d / "font" / f)
         shutil.copy(art / "LICENSE-Barlow-OFL.txt", d / "font" / "LICENSE-Barlow-OFL.txt")
+        ART_DIR = src
         (d / "manifest.json").write_text(json.dumps(manifest(key), indent=1, ensure_ascii=False) + "\n")
         print("wrote", d)
 
