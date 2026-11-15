@@ -1,5 +1,7 @@
 # Cómo funciona (notas técnicas)
 
+*[In English](HOW-IT-WORKS.md)*
+
 Todo sale de `native/sv_module.c`, un módulo nativo de Eden Duo (ABI en `native/include/`) que
 lee la memoria del juego y el romfs del jugador y publica valores (`sv.*`) que el manifiesto
 (`tools/gen_manifest.py` → `packages/*/dualscreen/manifest.json`) dibuja.
@@ -27,6 +29,16 @@ El mapa no es una imagen: son piezas `appli/tex/ymap_ter_small/ymap_ter_small_CC
 10×10, las DLC 4×4; CC = columna de oeste a este, RR = fila de sur a norte). El módulo las une
 en un mosaico de 2048 px y lo recorta para el zoom. Escala: Paldea `u = x/5000`,
 `v = (z+5500)/5000`; Kitakami y Arándano con 2000 y desfase 2000 (RaidCrawler).
+
+## Idioma de la interfaz
+
+- El ajuste `lang` (0 auto, 1 inglés, 2 español) es un flag persistente de Eden Duo.
+- El manifiesto escribe dos veces cada elemento con palabras, una en español y otra en inglés, y
+  solo muestra la del idioma elegido. Lo deciden los valores derivados `ui.en` / `ui.es`.
+- En *auto*, el módulo publica `sv.lang_en` según el byte de idioma de la partida (7 = español).
+- El módulo traduce también sus propios textos (estado, consejos, sugerencias…). Lee el ajuste
+  por el valor derivado `sv.ui.lang`, porque algunos hosts solo responden con el valor por
+  defecto a las lecturas `@flag:` desde el `sample()` de un módulo.
 
 ## El rival
 

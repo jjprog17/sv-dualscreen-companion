@@ -59,7 +59,7 @@ static const u8* get_read_pointer(void* u, u64 a, size_t n) {
 static u64 heap_begin(void* u) { (void)u; return HEAP_BASE; }
 static u64 heap_end(void* u) { (void)u; return HEAP_BASE + HEAP_SIZE; }
 static u64 tick_now;
-static int64_t flag_sel, flag_dtab;
+static int64_t flag_sel, flag_dtab, flag_lang;
 /* SV_FLAGBUG=1 reproduces the device: "@flag:" reads from sample() only see the fallback, while
  * the manifest's derived copies (sv.ui.*) carry the live value. */
 static int64_t get_i64_(void* u, const char* n, int64_t fb) {
@@ -80,6 +80,8 @@ static int64_t get_i64_(void* u, const char* n, int64_t fb) {
     }
     if (!strcmp(n, "sv.ui.sel")) return bug ? flag_sel : fb;
     if (!strcmp(n, "sv.ui.dtab")) return bug ? flag_dtab : fb;
+    if (!strcmp(n, "sv.ui.lang")) return bug ? flag_lang : fb;
+    if (!strcmp(n, "@flag:lang")) return bug ? fb : flag_lang;
     if (!strcmp(n, "@flag:sel")) return bug ? fb : flag_sel;
     if (!strcmp(n, "@flag:dtab")) return bug ? fb : flag_dtab;
     return fb;
@@ -202,7 +204,7 @@ int main(int argc, char** argv) {
     }
     party[6 * 0x158] = (u8)npk;
 
-    u8 ms[0x68]; memset(ms, 0, sizeof ms); ms[0x07] = 7; /* Spanish */
+    u8 ms[0x68]; memset(ms, 0, sizeof ms); ms[0x07] = getenv("SV_GAMELANG") ? (u8)atoi(getenv("SV_GAMELANG")) : 7; /* Spanish (2 = English) */
     w32(ms, 123456789u); const char* tn = "Entrenador";
     for (int i = 0; tn[i]; ++i) w16(ms + 0x10 + 2 * i, (u16)tn[i]);
 
@@ -317,6 +319,23 @@ int main(int argc, char** argv) {
         CHECK(nat == atoi(fn), "p%d national species %lld vs file name %d (internal %u)", i, nat, atoi(fn), exp_species[i]);
     }
     CHECK(geti("sv.bad_reads") == 0, "bad reads %lld", (long long)geti("sv.bad_reads"));
+
+    /* v0.10: interface language. A Spanish save on "auto" is Spanish; the setting forces English. */
+    CHECK(geti("sv.lang_en") == 0 && geti("sv.en") == 0, "Spanish save -> Spanish (lang_en %lld en %lld)",
+          (long long)geti("sv.lang_en"), (long long)geti("sv.en"));
+    CHECK(!strcmp(gett("sv.p1.st"), "DEB"), "fainted short status in Spanish (%s)", gett("sv.p1.st"));
+    flag_lang = 1;
+    for (int t = 0; t < 20; ++t, ++tick_now) m->sample(inst, &h);
+    CHECK(geti("sv.en") == 1 && geti("sv.lang_en") == 0, "setting English (en %lld)", (long long)geti("sv.en"));
+    CHECK(!strcmp(gett("sv.p1.st"), "FNT"), "fainted short status in English (%s)", gett("sv.p1.st"));
+    CHECK(!strcmp(gett("sv.d1.status"), "Fainted"), "fainted long status in English (%s)", gett("sv.d1.status"));
+    CHECK(!strcmp(gett("sv.d0.item"), "None") || strncmp(gett("sv.d0.item"), "Item ", 5) == 0 || gett("sv.d0.item")[0],
+          "item in English");
+    flag_lang = 2;
+    for (int t = 0; t < 20; ++t, ++tick_now) m->sample(inst, &h);
+    CHECK(geti("sv.en") == 0 && !strcmp(gett("sv.d1.status"), "Debilitado"), "setting Spanish (%s)", gett("sv.d1.status"));
+    flag_lang = 0;
+    for (int t = 0; t < 20; ++t, ++tick_now) m->sample(inst, &h);
 
     /* Torn read: corrupt one byte of the encrypted party; the module must keep the last good copy. */
     u8* pblk = NULL; for (int i = 0; i < ne; ++i) if (e[i].key == 0x3AA1A9ADu) pblk = hp(e[i].data);
@@ -890,9 +909,11 @@ int main(int argc, char** argv) {
                     printf("especie a mano: Nv %lld vel %lld | %s\n", (long long)geti("sv.opp.level"), (long long)geti("sv.opp.stat5"), gett("sv.opp.speed"));
                     CHECK(strcmp(gett("sv.opp.speed"), "Velocidad desconocida") != 0, "speed compared over its range");
                 }
-                hp(W3 + 0x28)[0] = 0x11;
-                for (int t = 0; t < 90; ++t, ++tick_now) m->sample(inst, &h);
-                CHECK(geti("sv.battle") == 0, "battle over");
+                if (!getenv("SV_DUMP_BATTLE")) {
+                    hp(W3 + 0x28)[0] = 0x11;
+                    for (int t = 0; t < 90; ++t, ++tick_now) m->sample(inst, &h);
+                    CHECK(geti("sv.battle") == 0, "battle over");
+                }
             }
             /* back to the defaults for the dump */
             x->on_action(inst, "bag_pouch", 0); x->on_action(inst, "dex_page", -1); x->on_action(inst, "dex_sel", 0);
@@ -908,6 +929,7 @@ int main(int argc, char** argv) {
     if (getenv("SV_DUMP")) { /* snapshot for tools/preview.py */
         flag_sel = getenv("SV_SEL") ? atoi(getenv("SV_SEL")) : 0;
         flag_dtab = getenv("SV_DTAB") ? atoi(getenv("SV_DTAB")) : 0;
+        flag_lang = getenv("SV_LANG") ? atoi(getenv("SV_LANG")) : 0;
         np = 0;
         for (int t = 0; t < 20; ++t, ++tick_now) m->sample(inst, &h);
         FILE* f = fopen(getenv("SV_DUMP"), "w");

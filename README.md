@@ -1,126 +1,125 @@
-# Companion de doble pantalla para Pokémon Escarlata y Púrpura (Eden Duo)
+# Dual-screen companion for Pokémon Scarlet and Violet (Eden Duo)
 
-Pantalla inferior para **Pokémon Escarlata / Púrpura** en el emulador **Eden Duo** (pensado para la
-AYN Thor y otras consolas de dos pantallas), al estilo del companion de *Luminescent Platinum*.
-Funciona con el juego original y con mods como **Pokémon Compass**.
+A second-screen companion for **Pokémon Scarlet / Violet** on the **Eden Duo** emulator, built for
+the AYN Thor and other dual-screen handhelds, in the spirit of the *Luminescent Platinum* companion.
+It works with the original game and with mods such as **Pokémon Compass**.
 
-*English summary at the end.*
+**English and Spanish:** the interface follows your game's language automatically. You can also
+choose it in Eden Duo's settings for the mod (**Language / Idioma**). · *[Leer en español](README.es.md)*
 
-| Equipo | Combate |
+| Team | Battle |
 |---|---|
-| ![Equipo](docs/img/party.png) | ![Combate](docs/img/battle.png) |
-| **Pokédex** | **Mochila** |
-| ![Pokédex](docs/img/dex.png) | ![Mochila](docs/img/bag.png) |
+| ![Team](docs/img/party.png) | ![Battle](docs/img/battle.png) |
+| **Pokédex** | **Bag** |
+| ![Pokédex](docs/img/dex.png) | ![Bag](docs/img/bag.png) |
 
-*Capturas generadas con `tools/preview.py` y datos de prueba (sin imágenes de Pokémon: esas las
-pones tú).*
+*Screenshots made with `tools/preview.py` and test data. No Pokémon pictures are included: you
+can add your own.*
 
-## Qué muestra
+## What it shows
 
-- **Equipo**: tarjetas con PS, nivel, estado y objeto en directo; ficha de cada Pokémon con
-  movimientos, estadísticas, naturaleza, teratipo y debilidades.
-- **Combate** (cambia solo al empezar un combate):
-  - el rival en grande, con PS, nivel, tipos y estadísticas base frente a las tuyas;
-  - un **Consejo**: quién actúa primero y el mejor cambio;
-  - lo que le hace daño (rojo), lo que aguanta (verde) y lo que no le afecta (azul), con botón
-    **¿Teracristal?**;
-  - eficacia de tus movimientos y **Sugerencias de cambio**.
-- **Pokédex**, **Mochila** (con los iconos de los objetos sacados del juego), **Mapa** (tu posición,
-  zoom ×1–×8 y orientación) y **Ficha de entrenador** (hora, fecha, batería, tiempo de juego…).
+- **Team**: cards with live HP, level, status and held item. Each Pokémon has a summary with its
+  moves, stats, nature, Tera Type and matchups.
+- **Battle** (opens by itself when a battle starts):
+  - the opponent in large print, with HP, level, types and base stats compared with yours;
+  - a **Tip**: who moves first and the best switch;
+  - what hurts it (red), what it resists (green) and what has no effect (blue), with a
+    **Terastallized?** button;
+  - how effective your moves are, and **Switch suggestions**.
+- **Pokédex**, **Bag** (with item icons taken from the game), **Map** (your position, zoom ×1–×8
+  and facing) and **Trainer card** (time, date, battery, play time…).
 
-Aspecto oscuro con paneles en diagonal y el color de cada juego: en Escarlata, fondo vino con
-azulejos de Paldea, rojo, naranja y el dorado de la Academia; en Púrpura, morado y lila. Una barra
-arriba muestra el lugar, el dinero, la batería y la hora. También hay un **tema claro**: botón **CAMBIAR TEMA** en la Ficha
-(Eden Duo lo recuerda).
+The look is dark, with slanted panels and each game's colours. Scarlet has a wine-red background
+with Paldea tiles, red, orange and the Academy's gold; Violet uses purple and lilac. A bar at the
+top shows where you are, your money, the battery and the time. There is also a **light theme**:
+use the **CHANGE THEME** button on the Card page or the **Theme** setting. Eden Duo remembers it.
 
-En combate, el botón **CURSOR** abre una búsqueda guiada de la posición del cursor del menú de
-ataques del juego (experimental): cuando la encuentra, el ataque marcado se resalta abajo.
+In battle, the **CURSOR** button opens a guided search for the game's move-menu cursor
+(experimental). Once found, the selected move is highlighted on the bottom screen.
 
-Todo es **solo lectura**: el companion nunca modifica la memoria ni la partida.
+Everything is **read-only**: the companion never changes the game's memory or your save.
 
-## Cómo detecta al rival
+## Language
 
-Escarlata y Púrpura no guardan el Pokémon del combate en ningún sitio conocido, y no hay punteros
-publicados para la versión 3.0.x. El companion lo detecta así:
+| Setting (Eden Duo → the mod's settings) | Interface |
+|---|---|
+| **Auto** (default) | Spanish for Spanish games, English for every other language |
+| **English** | always English |
+| **Español** | always Spanish |
 
-1. **Por su nombre en pantalla**: durante el combate el juego escribe el nombre del rival como
-   texto (barra de vida, «¡Un Skiddo salvaje te ha salido al paso!»). El módulo busca nombres de
-   especie que aparecen nuevos al empezar el combate, descarta los de tu equipo y lee el «Nv. XX»
-   que no es el tuyo. Recuerda dónde los escribe el juego para encontrarlos al instante en el
-   siguiente combate.
-2. **Por sus PS**: un Pokémon cuya vida cambia es el que está en combate (sirve para entrenadores).
-3. **A mano**: botón **Cambiar** → lista de Pokémon cercanos o **Buscar por nombre**, con el nivel
-   ajustable.
+Game words (Pokémon, moves, items, abilities, places) always come from your own game files, so
+they are in the game's language. Before your save is loaded, *Auto* shows English.
 
-Debajo de la ficha del rival se indica cómo se ha encontrado. Los detalles técnicos están en
-[docs/COMO-FUNCIONA.md](docs/COMO-FUNCIONA.md).
+## How it finds the opponent
 
-## Requisitos
+Scarlet and Violet don't keep the battling Pokémon anywhere known, and there are no published
+pointers for version 3.0.x. The companion finds it like this:
 
-- **Eden Duo** con runtime 17 o posterior (hora y fecha: runtime 16; batería y FPS: runtime 21).
-- **Juego en versión 3.0.0 o 3.0.1**:
+1. **By its name on screen**: during a battle the game writes the opponent's name as text (HP bar,
+   "A wild Skiddo appeared!"). The module looks for species names that appear when the battle
+   starts, leaves out your team's and reads the "Lv. XX" that isn't yours. It remembers where the
+   game writes them, so the next battle finds them at once.
+2. **By its HP**: a Pokémon whose HP changes is the one in battle (useful against trainers).
+3. **By hand**: the **Change** button opens a list of nearby Pokémon or **Search by name**, with
+   an adjustable level.
 
-  | Juego | Title ID | 3.0.0 | 3.0.1 |
+The line under the opponent's card says how it was found. Technical details are in
+[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+
+## Requirements
+
+- **Eden Duo** runtime 17 or later (time and date: runtime 16; battery and FPS: runtime 21).
+- **Game version 3.0.0 or 3.0.1**:
+
+  | Game | Title ID | 3.0.0 | 3.0.1 |
   |---|---|---|---|
-  | Escarlata | `0100A3D008C5C000` | `C01884F294C053C4` | `421C5411B487EB4D` |
-  | Púrpura | `01008F6008C5E000` | `E335DE2BF4DCD951` | `709BFD6611529864` |
+  | Scarlet | `0100A3D008C5C000` | `C01884F294C053C4` | `421C5411B487EB4D` |
+  | Violet | `01008F6008C5E000` | `E335DE2BF4DCD951` | `709BFD6611529864` |
 
-Los nombres, tipos, datos de movimientos, iconos y el mapa se leen **de tus propios archivos del
-juego** (romfs), en el idioma de tu partida. El paquete no incluye ningún recurso del juego.
+Names, types, move data, icons and the map are read **from your own game files** (romfs) at run
+time. The package ships no game assets.
 
-## Instalación
+## Installing
 
-1. Descarga `Escarlata-vX.Y.Z.dsmod.zip` o `Purpura-vX.Y.Z.dsmod.zip` de
+1. Download `Escarlata-vX.Y.Z.dsmod.zip` (Scarlet) or `Purpura-vX.Y.Z.dsmod.zip` (Violet) from
    [Releases](../../releases).
-2. En Eden Duo: mantén pulsado el juego → **Add-ons** → **Install** → **Dual screen mods** → elige
-   el `.dsmod.zip`. Una versión nueva sustituye a la anterior.
+2. In Eden Duo: long-press the game → **Add-ons** → **Install** → **Dual screen mods** → pick the
+   `.dsmod.zip`. A new version replaces the old one.
 
-## Compilar
+## Building
 
-Hace falta `clang`, `lld`, `llvm-strip` y Python 3 (solo la biblioteca estándar):
+You need `clang`, `lld`, `llvm-strip` and Python 3 (standard library only):
 
 ```sh
-./build.sh            # crea dist/Escarlata-v<VERSION>.dsmod.zip y dist/Purpura-v<VERSION>.dsmod.zip
+./build.sh            # makes dist/Escarlata-v<VERSION>.dsmod.zip and dist/Purpura-v<VERSION>.dsmod.zip
 ```
 
-El módulo nativo es C freestanding (sin libc ni NDK) y se compila para `android-arm64-v8a` y
-`linux-x86_64`. El diseño de las páginas se genera con `tools/gen_manifest.py` y el arte con
-`tools/make_art.py` (necesita Pillow; el arte ya generado está en `art/`).
+The native module is freestanding C (no libc, no NDK), built for `android-arm64-v8a` and
+`linux-x86_64`. The pages are generated by `tools/gen_manifest.py` (with the English/Spanish
+text table) and the art by `tools/make_art.py` (needs Pillow; the generated art is in `art/`).
 
-**Portada propia (opcional):** si pones una imagen de 1240×1080 en `art/splash_s.png`, Escarlata la
-usa como pantalla de inicio. El repositorio no la incluye; sin ella, los dos juegos usan la
-pantalla de inicio generada.
+**Your own start screen (optional):** put a 1240×1080 image in `art/splash_s.png` and Scarlet
+uses it as its start screen. The repository doesn't include one; without it both games use the
+generated start screen.
 
-`tools/preview.py` dibuja una página a partir de un volcado de valores, sin consola.
-`native/test_host.c` es un host falso con una memoria simulada que prueba el módulo entero
-(lectura de la partida, combates, detección por nombre, mapa…); necesita una copia de
-[PKHeX](https://github.com/kwsch/PKHeX) para sus PK9 de prueba y `tools/make_test_romfs.py`
-para generar un romfs sintético.
+`tools/preview.py` draws a page from a dump of values, without a console.
+`native/test_host.c` is a fake host with simulated memory that tests the whole module (reading
+the save, battles, name detection, map, both languages…). It needs a copy of
+[PKHeX](https://github.com/kwsch/PKHeX) for its test PK9 files, and `tools/make_test_romfs.py`
+to build a synthetic romfs (`--english` for an English one).
 
-## Créditos
+## Credits
 
-- Formatos de la partida y de los PK9: [PKHeX](https://github.com/kwsch/PKHeX) (kwsch y
-  colaboradores).
-- Claves de bloques y estructuras de SV: [SVResearches](https://github.com/Manu098vm/SVResearches).
-- Rutas del romfs: [PokeDocs](https://github.com/pkZukan/PokeDocs) (lista de hashes de SV).
-- Escala del mapa: [RaidCrawler](https://github.com/LegoFigure11/RaidCrawler).
-- Puntero del estado del mapa: [SysBot.NET](https://github.com/kwsch/SysBot.NET).
-- Idea y estilo: el companion de *Luminescent Platinum* para Eden Duo.
-- Bibliotecas incluidas: ver [THIRD_PARTY.md](THIRD_PARTY.md).
+- Save and PK9 formats: [PKHeX](https://github.com/kwsch/PKHeX) (kwsch and contributors).
+- Block keys and SV structures: [SVResearches](https://github.com/Manu098vm/SVResearches).
+- romfs paths: [PokeDocs](https://github.com/pkZukan/PokeDocs) (SV hash list).
+- Map scale: [RaidCrawler](https://github.com/LegoFigure11/RaidCrawler).
+- Map-state pointer: [SysBot.NET](https://github.com/kwsch/SysBot.NET).
+- Idea and style: the *Luminescent Platinum* companion for Eden Duo.
+- Bundled libraries: see [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## Licencia y aviso
+## Licence and disclaimer
 
-Código bajo **GPL-3.0-or-later** ([LICENSE](LICENSE)). Proyecto de fans sin ánimo de lucro, sin
-relación con Nintendo, Game Freak, Creatures ni The Pokémon Company. Pokémon y sus nombres son
-marcas de sus respectivos propietarios. No se distribuye ningún archivo del juego: necesitas tu
-propia copia.
-
----
-
-## English summary
-
-A second-screen companion for **Pokémon Scarlet / Violet** (v3.0.0 and v3.0.1) on the
-**Eden Duo** emulator: live party, battle screen (rival detected from the names the game
-writes on screen, type matchups, switch suggestions), Pokédex, bag, map with live position and
-trainer card, in a dark slanted look with each game's colours. Read-only. Game data is read from your own romfs at runtime; nothing from the game
-is shipped. Build with `./build.sh` (clang + lld + Python 3). Licensed GPL-3.0-or-later.
+Code under **GPL-3.0-or-later** ([LICENSE](LICENSE)). A non-profit fan project, not affiliated
+with Nintendo, Game Freak, Creatures or The Pokémon Company. Pokémon and its names are trademarks
+of their respective owners. No game files are distributed: you need your own copy of the game.

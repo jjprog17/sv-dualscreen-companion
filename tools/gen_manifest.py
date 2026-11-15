@@ -18,12 +18,14 @@ import pathlib
 import shutil
 import sys
 
-VERSION = "v0.9.0"
+VERSION = "v0.10.0"
 GAMES = {
     "PokemonScarlet": {"title_id": "0100A3D008C5C000", "name": "Pokemon Scarlet dual screen",
-                        "title": "Pokémon Escarlata", "theme": "scarlet"},
+                        "title": "Pokémon Escarlata", "title_en": "Pokémon Scarlet",
+                        "theme": "scarlet"},
     "PokemonViolet": {"title_id": "01008F6008C5E000", "name": "Pokemon Violet dual screen",
-                       "title": "Pokémon Púrpura", "theme": "violet"},
+                       "title": "Pokémon Púrpura", "title_en": "Pokémon Violet",
+                       "theme": "violet"},
 }
 # accent, second accent, gold, text, labels, secondary text, page background
 THEMES = {"scarlet": ("#FFE8452C", "#FFFF8A1F", "#FFF2B544", "#FFFFF1E4", "#FFC4A7A9", "#FFE3CFC8", "#FF1C0E13"),
@@ -774,7 +776,7 @@ def map_page():
          dict(img([MX + MS - 124, MY + 16, 108, 108], A("compass.png")), rotate_bind="sv.map.north"),
          lab([MX + MS - 70, MY + 20, 0, 22], "N", scale=4, color=HEAD, align="center", hide_bind="sv.map.rot", keep_max=0),
          lab([MX + MS - 70, MY + 98, 0, 22], "S", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0),
-         lab([MX + MS - 110, MY + 59, 0, 22], "O", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0),
+         lab([MX + MS - 110, MY + 59, 0, 22], "O", _en="W", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0),
          lab([MX + MS - 31, MY + 59, 0, 22], "E", scale=4, color=GREY, align="center", hide_bind="sv.map.rot", keep_max=0)]
     X, Y = 942, 22
     w += [img([X, Y, 284, 908], A("panel_tall.png")),
@@ -870,13 +872,18 @@ def trainer_page(game_key="PokemonScarlet"):
     WD = ["Domingo,", "Lunes,", "Martes,", "Miércoles,", "Jueves,", "Viernes,", "Sábado,"]
     MO = ["", "de enero", "de febrero", "de marzo", "de abril", "de mayo", "de junio", "de julio", "de agosto",
           "de septiembre", "de octubre", "de noviembre", "de diciembre"]
+    WD_EN = ["Sunday,", "Monday,", "Tuesday,", "Wednesday,", "Thursday,", "Friday,", "Saturday,"]
+    MO_EN = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+             "November", "December"]
     w += [img([CX, CY, 1200, 214], A("clockband.png")),
           val([CX + 44, CY + 18, 0, 0], "@clock.hour", scale=20, color=HEAD, pad=2, need_bind=CK, **IT),
           lab([CX + 160, CY + 12, 40, 110], ":", scale=20, color=HEAD, need_bind=CK),
           val([CX + 192, CY + 18, 0, 0], "@clock.minute", scale=20, color=HEAD, pad=2, need_bind=CK, **IT),
-          dict(val([CX + 300, CY + 150, 0, 0], "@clock.wday", scale=7, color=SOFT, align="right", need_bind=CK, **IT), names=WD),
+          dict(val([CX + 300, CY + 150, 0, 0], "@clock.wday", scale=7, color=SOFT, align="right", need_bind=CK, **IT), names=WD,
+               _en_names=WD_EN),
           val([CX + 334, CY + 150, 0, 0], "@clock.day", scale=7, color=SOFT, align="center", need_bind=CK, **IT),
-          dict(val([CX + 364, CY + 150, 0, 0], "@clock.month", scale=7, color=SOFT, need_bind=CK, **IT), names=MO),
+          dict(val([CX + 364, CY + 150, 0, 0], "@clock.month", scale=7, color=SOFT, need_bind=CK, **IT), names=MO,
+               _en_names=MO_EN),
           lab([CX + 44, CY + 70, 760, 40], "Reloj y batería: actualiza Eden Duo", scale=6, color=SOFT,
               need_bind=gate_card("ui.c.noclock", "!(@clock.year > 2000)")),
           val([CX + 500, CY + 40, 0, 0], "@perf.fps", scale=4, color=GREY, suffix=" FPS", need_bind="@perf.fps"),
@@ -902,7 +909,7 @@ def trainer_page(game_key="PokemonScarlet"):
     card = "tcard_v.png" if game_key == "PokemonViolet" else "tcard_s.png"
     w += [img([TX, TY, 1200, 700], A(card)),
           lab([TX + 30, TY + 18, 700, 44], "LICENCIA DE ENTRENADOR", scale=9, color=WHITE, **IT),
-          lab([TX + 1170, TY + 26, 0, 30], GAMES[game_key]["title"].upper(), scale=5, color=SOFT, align="right", **IT),
+          lab([TX + 1170, TY + 26, 0, 30], GAMES[game_key]["title"].upper(), _en=GAMES[game_key]["title_en"].upper(), scale=5, color=SOFT, align="right", **IT),
           lab([TX + 34, TY + 94, 200, 22], "NOMBRE", scale=3, color=GREY),
           lab([TX + 34, TY + 116, 560, 60], bind="sv.trainer", scale=11, color=HEAD, **IT),
           lab([TX + 640, TY + 94, 200, 22], "ID", scale=3, color=GREY),
@@ -1041,29 +1048,153 @@ def _unroll(w):
     return out
 
 
-def _gated(w, light):
+def _gated(w, on, gate="ui.light", gate_off="ui.dark", pre_off="ui.D|", pre_on="ui.L|", gates=None, names=None):
+    """w shown only when `gate` is on (on=True) or off (on=False), keeping its own conditions."""
+    gates = THEME_GATES if gates is None else gates
+    names = _GATE_NAMES if names is None else names
     w = copy.deepcopy(w)
     if "hide_bind" not in w:
         w.pop("keep_min", None)
         w.pop("keep_max", None)
-        w["hide_bind"] = "ui.light"
-        if light:
+        w["hide_bind"] = gate
+        if on:
             w["keep_min"] = 1
         else:
             w["keep_max"] = 0
         return [w]
     if "need_bind" not in w:
-        w["need_bind"] = "ui.light" if light else "ui.dark"
+        w["need_bind"] = gate if on else gate_off
         return [w]
     if "{i}" in w["need_bind"] and w.get("repeat"):
-        return [x for c in _unroll(w) for x in _gated(c, light)]
+        return [x for c in _unroll(w) for x in _gated(c, on, gate, gate_off, pre_off, pre_on, gates, names)]
     need = w["need_bind"]
-    name = ("ui.L|" if light else "ui.D|") + need
-    if name not in _GATE_NAMES:
-        _GATE_NAMES.add(name)
-        THEME_GATES.append({"name": name, "expr": f"({need}) && " + ("ui.light" if light else "!ui.light")})
+    name = (pre_on if on else pre_off) + need
+    if name not in names:
+        names.add(name)
+        gates.append({"name": name, "expr": f"({_q(need)}) && " + (gate if on else "!" + gate)})
     w["need_bind"] = name
     return [w]
+
+
+# ---------------------------------------------------------------- English / Spanish (v0.10)
+# Same idea as the theme: a widget with words is written twice, the Spanish one and an English
+# copy, each shown only in its language. The language is the setting "lang" (0 auto, 1 English,
+# 2 Spanish); auto follows the save's language, which the module publishes as "sv.lang_en"
+# (Spanish saves -> Spanish, any other language -> English). Game words (names, places, moves)
+# come from the game's own files and are already in the game's language.
+EN = {
+    " min de sesión": " min this session", " vistos": " seen",
+    "AGUANTA": "RESISTS", "AGUANTA BIEN": "RESISTS", "ALTURA": "HEIGHT", "ARÁNDANO": "BLUEBERRY",
+    "AT. ESP.": "SP. ATK", "ATAQUE": "ATTACK", "ATAQUES": "MOVES", "Al guardar": "Last save",
+    "At. Esp.": "Sp. Atk", "Ataque": "Attack", "BATERÍA BAJA": "LOW BATTERY", "BAYAS": "BERRIES",
+    "BUSCAR EL CURSOR DE ATAQUES": "FIND THE MOVE CURSOR", "BUSCAR POR NOMBRE": "SEARCH BY NAME",
+    "Base de la especie": "Species base stats", "Bayas": "Berries", "Buscando Pokémon cerca...": "Looking for Pokémon nearby...",
+    "Buscando al rival…": "Looking for the opponent…", "CAMBIAR": "CHANGE", "CAMBIAR TEMA": "CHANGE THEME",
+    "CAMBIOS": "SWITCHES", "CAPTURADO": "CAUGHT", "CAPTURADOS": "CAUGHT", "CARGANDO": "CHARGING", "CERRAR": "CLOSE",
+    "COMBATE": "BATTLE", "COMPAÑERO DE DOBLE PANTALLA": "DUAL-SCREEN COMPANION", "CONSEJO": "TIP",
+    "Calculado con su teratipo": "Using its Tera Type",
+    "Camina un poco y la flecha mirará hacia donde vas.": "Walk a little and the arrow will point where you go.",
+    "Carga tu partida:": "Load your save:", "Carga tu partida: aquí verás tu equipo": "Load your save to see your team",
+    "Clave": "Key", "Combate": "Battle", "Compañero de": "Dual-screen", "DATOS": "STATS", "DEBILIDADES": "MATCHUPS",
+    "DEF. ESP.": "SP. DEF", "DEFENSA": "DEFENSE", "DINERO": "MONEY", "Def. Esp.": "Sp. Def", "Defensa": "Defense",
+    "EQUIPO": "TEAM", "ESCARLATA": "SCARLET", "ESTÁS EN": "YOU ARE IN", "Equipo": "Team", "Estado": "Status",
+    "FICHA": "SUMMARY", "Ficha": "Card", "HABILIDAD": "ABILITY", "HACIA DONDE VAS": "HEADING UP",
+    "INGREDIENTES": "INGREDIENTS", "KITAKAMI": "KITAKAMI", "LE HACE DAÑO": "HURTS IT", "LE HACEN DAÑO": "WEAK TO",
+    "LICENCIA DE ENTRENADOR": "TRAINER CARD", "Leyendo la Pokédex...": "Reading the Pokédex...",
+    "Leyendo la mochila...": "Reading the bag...", "MAPA": "MAP", "MATERIALES": "MATERIALS", "MEDICINAS": "MEDICINE",
+    "MEJOR": "BEST", "MT": "TMs", "Mapa": "Map", "Materiales": "Materials", "Medicinas": "Medicine",
+    "Mejor cambio:": "Best switch:", "Mochila": "Bag", "MÁQUINAS TÉCNICAS": "TECHNICAL MACHINES",
+    "NATURALEZA": "NATURE", "NO LE AFECTA": "NO EFFECT", "NOMBRE": "NAME", "NORTE ARRIBA": "NORTH UP", "NV.": "LV.",
+    "Nada": "None", "Necesita tu posición en directo": "Needs your live position",
+    "No hay otros Pokémon que puedan luchar.": "No other Pokémon can battle.",
+    "No tienes nada en este bolsillo.": "This pocket is empty.", "Nº": "No.", "OBJETO": "ITEM",
+    "OBJETOS CLAVE": "KEY ITEMS", "ORIENTACIÓN": "FACING", "OTROS OBJETOS": "OTHER ITEMS", "Otros": "Other",
+    "PALDEA": "PALDEA", "PESO": "WEIGHT", "POKÉ BALLS": "POKÉ BALLS", "POKÉDEX": "POKÉDEX", "PS": "HP",
+    "PS, habilidad y objeto: desconocidos": "HP, Ability and item: unknown", "PUNTOS ARÁNDANO": "BLUEBERRY POINTS",
+    "PUNTOS DE LIGA": "LEAGUE POINTS", "Picnic": "Picnic", "PÁGINA": "PAGE", "REINICIAR": "RESET",
+    "Reloj y batería: actualiza Eden Duo": "Clock and battery: update Eden Duo", "SU NIVEL": "ITS LEVEL",
+    "SUGERENCIAS DE CAMBIO": "SWITCH SUGGESTIONS",
+    "Según los tipos de la especie; no cuenta habilidades ni Teracristal.":
+        "From the species' types; abilities and Terastallizing not counted.",
+    "Sin tu posición se ve el mapa entero.": "Without your position the whole map is shown.",
+    "Solo por tipos (sin habilidad). Toca ¿Teracristal? si lo usa.":
+        "Types only (no Ability). Tap TERASTALLIZED? if it uses it.",
+    "TERA": "TERA", "TERATIPO": "TERA TYPE", "TESOROS": "TREASURES", "TIEMPO DE JUEGO": "PLAY TIME",
+    "TU EQUIPO": "YOUR TEAM", "TU POKÉMON": "YOUR POKÉMON", "TUS ATAQUES": "YOUR MOVES", "Tesoros": "Treasures",
+    "Toca el Pokémon del combate (el más probable va primero).": "Tap the Pokémon you are battling (most likely first).",
+    "Toca el número del ataque donde está el cursor del juego. Muévelo y repite hasta que se resalte.":
+        "Tap the number of the move the game's cursor is on. Move it and repeat until it lights up.",
+    "Toca la primera letra del Pokémon.": "Tap the Pokémon's first letter.",
+    "Toca un Pokémon para ver su ficha.": "Tap a Pokémon to see its summary.",
+    "Toca un bolsillo a la izquierda; las flechas pasan de página.": "Tap a pocket on the left; arrows turn pages.",
+    "Tú, en directo": "You, live", "VELOC.": "SPEED", "VISTOS": "SEEN", "VOLVER": "BACK", "Velocidad": "Speed",
+    "ZOOM": "ZOOM", "aquí verás tu equipo": "to see your team here", "capturados": "caught",
+    "doble pantalla": "companion", "si aún no te mueves": "until you move", "y la ficha del rival.": "and the rival's card.",
+    "y, en combate, la ficha del rival.": "and, in battle, the opponent's card.", "¡COMBATE!": "BATTLE!",
+    "¿CONTRA QUIÉN LUCHAS?": "WHO ARE YOU BATTLING?", "¿MAPA REVUELTO?": "MAP SCRAMBLED?",
+    "¿NO ESTÁ? BUSCAR POR NOMBRE": "NOT HERE? SEARCH BY NAME", "¿TERACRISTAL?": "TERASTALLIZED?",
+    "POKÉMON": "POKÉMON",
+}
+EN_SCALE = {"BLUEBERRY": 6, "TERASTALLIZED?": 4}   # English words that need a smaller size to fit their box
+LANG_GATES = []
+_LANG_NAMES = set()
+
+
+def _q(name):
+    """A name as an expr operand: names with characters outside [A-Za-z0-9_.:@] go in quotes."""
+    ok = all(c.isalnum() or c in "_.:@" for c in name)
+    return name if ok else "'" + name + "'"
+
+
+def _en_copy(w):
+    """The English twin of a widget with words, or None when it has none (or the same)."""
+    e = copy.deepcopy(w)
+    e.pop("_en", None)
+    e.pop("_en_names", None)
+    changed = False
+    if "_en" in w:
+        e["text"], changed = w["_en"], True
+    elif w.get("type") == "label" and isinstance(w.get("text"), str) and len(w["text"]) > 1 and w["text"] in EN:
+        if EN[w["text"]] != w["text"]:
+            e["text"], changed = EN[w["text"]], True
+            if e["text"] in EN_SCALE:
+                e["text_scale"] = EN_SCALE[e["text"]]
+    if w.get("type") == "value":
+        if w.get("suffix") in EN:
+            e["suffix"], changed = EN[w["suffix"]], True
+        if "_en_names" in w:
+            e["names"], changed = w["_en_names"], True
+    return e if changed else None
+
+
+def localize(pages):
+    LANG_GATES.clear()
+    _LANG_NAMES.clear()
+    # derived "sv.ui.lang": the module reads the setting from here (some hosts answer "@flag:"
+    # reads from a module's sample() with the fallback only)
+    LANG_GATES.extend([{"name": "sv.ui.lang", "expr": "@flag:lang"},
+                       {"name": "ui.en", "expr": "@flag:lang == 1 || (@flag:lang == 0 && sv.lang_en != 0)"},
+                       {"name": "ui.es", "expr": "!ui.en"}])
+    missing = set()
+    for page in pages:
+        out = []
+        for w in page["widgets"]:
+            e = _en_copy(w)
+            if e is None:
+                if w.get("type") == "label" and isinstance(w.get("text"), str) and len(w["text"]) > 1 \
+                        and any(c.isalpha() for c in w["text"]) and w["text"] not in EN and "_en" not in w \
+                        and not w["text"].startswith("v0."):
+                    missing.add(w["text"])
+                w = dict(w); w.pop("_en", None); w.pop("_en_names", None)
+                out.append(w)
+                continue
+            w = dict(w); w.pop("_en", None); w.pop("_en_names", None)
+            out += _gated(w, False, "ui.en", "ui.es", "ui.S|", "ui.E|", LANG_GATES, _LANG_NAMES) \
+                + _gated(e, True, "ui.en", "ui.es", "ui.S|", "ui.E|", LANG_GATES, _LANG_NAMES)
+        page["widgets"] = out
+    if missing:
+        print("sin traducir:", sorted(missing), file=sys.stderr)
+    return pages
 
 
 def themeify(pages, theme):
@@ -1121,7 +1252,7 @@ def manifest(game_key):
     else:
         waiting = [
             img([0, 0, W, H], A("splash_v.png")),
-            lab([96, 330, 900, 100], g["title"].upper(), scale=20, color=HEAD, **IT),
+            lab([96, 330, 900, 100], g["title"].upper(), _en=g["title_en"].upper(), scale=20, color=HEAD, **IT),
             lab([100, 450, 820, 44], "COMPAÑERO DE DOBLE PANTALLA", scale=9, color=ACC2, **IT),
             lab([100, 530, 820, 34], "Carga tu partida: aquí verás tu equipo", scale=6, color=SOFT),
             lab([100, 570, 820, 34], "y, en combate, la ficha del rival.", scale=6, color=SOFT),
@@ -1129,7 +1260,7 @@ def manifest(game_key):
             lab([1060, 1040, 160, 24], VERSION, scale=4, color="#B0FFFFFF", align="right"),
         ]
 
-    pages = themeify(anchor_text([
+    pages = themeify(localize(anchor_text([
         {"id": "waiting", "widgets": waiting},
         {"id": "party", "widgets": party},
         dex_page(),
@@ -1137,7 +1268,7 @@ def manifest(game_key):
         map_page(),
         trainer_page(game_key),
         battle_page(),
-    ]), g["theme"])
+    ])), g["theme"])
     return {
         "format": 1,
         "title_id": g["title_id"],
@@ -1155,16 +1286,18 @@ def manifest(game_key):
         "background": PAGE_BG,
         "font": "file:font/barlow.mfnt",
         "font_atlas": "file:font/barlow.png",
-        "flags": {"sel": 0, "dtab": 0, "theme": 0},
-        # runtime 17: the theme as a setting, so Eden Duo keeps it between sessions
-        "settings": [{"flag": "theme", "label": "Tema", "type": "choice", "choices": ["Oscuro", "Claro"],
-                      "default": 0}],
+        "flags": {"sel": 0, "dtab": 0, "theme": 0, "lang": 0},
+        # runtime 17: theme and language as settings, so Eden Duo keeps them between sessions
+        "settings": [{"flag": "lang", "label": "Language / Idioma", "type": "choice",
+                      "choices": ["Auto", "English", "Español"], "default": 0},
+                     {"flag": "theme", "label": "Theme / Tema", "type": "choice",
+                      "choices": ["Dark / Oscuro", "Light / Claro"], "default": 0}],
         # Which slot / detail tab is shown is decided here, not by the module: on some runtimes
         # a module's sample() runs before the tick's flags are published and only ever sees the
         # default (the Super Mario Odyssey module documents the same). Derived values are
         # evaluated after the flags, in this order.
         "derived": derived_gates() + page_gates() + [{"name": k, "expr": v} for k, v in BATTLE_GATES.items()]
-                   + [{"name": k, "expr": v} for k, v in CARD_GATES.items()] + THEME_GATES,
+                   + [{"name": k, "expr": v} for k, v in CARD_GATES.items()] + LANG_GATES + THEME_GATES,
         "debug_page": True,
         "actions": actions,
         "pages": pages,

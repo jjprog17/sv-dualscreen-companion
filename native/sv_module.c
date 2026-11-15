@@ -716,26 +716,47 @@ typedef struct {
 } State;
 LOCAL State g;
 
+/* ---------- interface language (v0.10) ----------
+ * English or Spanish. The "lang" setting (0 auto, 1 English, 2 Spanish) is read from the host; auto follows the save's language (MyStatus byte 0x07, 7 = Spanish):
+ * Spanish games get Spanish, every other language English. Before the save is read, auto is
+ * English. Game words (names, places...) always come from the game's own files, in its language. */
+LOCAL int g_en = 1, g_lang_seen;
+LOCAL u32 g_lang_last;
+LOCAL s64 g_lang_flag;
+#define TR(es, en) (g_en ? (en) : (es))
+LOCAL int lang_auto_en(void) { return g_lang_seen ? g_lang_last != 7 : 1; }
+LOCAL void lang_update(const EdenDsmodHostApi* h) {
+    if (g.status_ok) { g_lang_seen = 1; g_lang_last = g.lang; }
+    /* The manifest copies the flag into the derived value "sv.ui.lang": some hosts only answer
+     * "@flag:" reads from sample() with the fallback (see test_host SV_FLAGBUG). */
+    g_lang_flag = 0;
+    if (h && h->struct_size >= __builtin_offsetof(EdenDsmodHostApi, get_i64) + sizeof(h->get_i64) && h->get_i64) {
+        g_lang_flag = h->get_i64(h->userdata, "sv.ui.lang", -1);
+        if (g_lang_flag < 0) g_lang_flag = h->get_i64(h->userdata, "@flag:lang", 0);
+    }
+    g_en = g_lang_flag == 1 ? 1 : g_lang_flag == 2 ? 0 : lang_auto_en();
+}
+
 LOCAL const char* status_short(u32 st) {
-    if (st & 7) return "DOR";
-    if (st & 0x80) return "ENV+";
-    if (st & 0x08) return "ENV";
-    if (st & 0x10) return "QUE";
-    if (st & 0x20) return "CON";
+    if (st & 7) return TR("DOR", "SLP");
+    if (st & 0x80) return TR("ENV+", "TOX");
+    if (st & 0x08) return TR("ENV", "PSN");
+    if (st & 0x10) return TR("QUE", "BRN");
+    if (st & 0x20) return TR("CON", "FRZ");
     if (st & 0x40) return "PAR";
     return "";
 }
 LOCAL const char* status_long(const Mon* m) {
-    if (m->egg) return "Huevo";
-    if (m->hp == 0) return "Debilitado";
+    if (m->egg) return TR("Huevo", "Egg");
+    if (m->hp == 0) return TR("Debilitado", "Fainted");
     u32 st = m->status;
-    if (st & 7) return "Dormido";
-    if (st & 0x80) return "Gravemente envenenado";
-    if (st & 0x08) return "Envenenado";
-    if (st & 0x10) return "Quemado";
-    if (st & 0x20) return "Congelado";
-    if (st & 0x40) return "Paralizado";
-    return "Sano";
+    if (st & 7) return TR("Dormido", "Asleep");
+    if (st & 0x80) return TR("Gravemente envenenado", "Badly poisoned");
+    if (st & 0x08) return TR("Envenenado", "Poisoned");
+    if (st & 0x10) return TR("Quemado", "Burned");
+    if (st & 0x20) return TR("Congelado", "Frozen");
+    if (st & 0x40) return TR("Paralizado", "Paralyzed");
+    return TR("Sano", "Healthy");
 }
 
 LOCAL int refresh_party(const EdenDsmodHostApi* h, const KeyTable* kt);
@@ -1378,7 +1399,7 @@ LOCAL const char* species_name(u32 nat) {
     return name_or_num(&g_species, g_species_internal ? internal9((u16)nat) : nat, "#");
 }
 LOCAL const char* mon_name(const Mon* m) {
-    if (m->egg) return "Huevo";
+    if (m->egg) return TR("Huevo", "Egg");
     if (m->nick[0]) return m->nick;
     return species_name(m->species);
 }
@@ -1398,7 +1419,7 @@ LOCAL void publish_card(u32 i, const Mon* m) {
     pi(K("sv.p", i, ".male"), m->gender == 0);
     pi(K("sv.p", i, ".female"), m->gender == 1);
     pi(K("sv.p", i, ".status"), m->status);
-    pt(K("sv.p", i, ".st"), m->hp == 0 ? "DEB" : status_short(m->status));
+    pt(K("sv.p", i, ".st"), m->hp == 0 ? TR("DEB", "FNT") : status_short(m->status));
     pt(K("sv.p", i, ".name"), mon_name(m));
     /* HP colour band like the games: green > 50%, yellow > 20%, red below. */
     u32 band = m->hpmax == 0 ? 0 : (m->hp * 100 > m->hpmax * 50 ? 0 : (m->hp * 100 > m->hpmax * 20 ? 1 : 2));
@@ -1416,7 +1437,7 @@ LOCAL void publish_type(const char* prefix, s64 idx, const char* suffix, u32 typ
     Str k; char key[96];
     s_init(&k, key, sizeof(key)); s_cat(&k, base); pi(key, type);
     s_init(&k, key, sizeof(key)); s_cat(&k, base); s_cat(&k, "n");
-    pt(key, name_or_num(&g_types, type, "Tipo "));
+    pt(key, name_or_num(&g_types, type, TR("Tipo ", "Type ")));
 }
 
 /* Detail sheet of one party slot under "sv.d<slot>." (the manifest shows the selected one). */
@@ -1450,9 +1471,9 @@ LOCAL void publish_detail_pfx(const char* pfx, const Mon* m) {
     pi(KS("female"), m->gender == 1);
     pi(KS("shiny"), m->shiny);
     pt(KS("status"), status_long(m));
-    pt(KS("item"), m->item ? name_or_num(&g_items, m->item, "Objeto ") : "Ninguno");
-    pt(KS("ability"), name_or_num(&g_abil, m->ability, "Habilidad "));
-    pt(KS("nature"), name_or_num(&g_nat, m->nature, "Natur. "));
+    pt(KS("item"), m->item ? name_or_num(&g_items, m->item, TR("Objeto ", "Item ")) : TR("Ninguno", "None"));
+    pt(KS("ability"), name_or_num(&g_abil, m->ability, TR("Habilidad ", "Ability ")));
+    pt(KS("nature"), name_or_num(&g_nat, m->nature, TR("Natur. ", "Nature ")));
     publish_type(KS("tera"), -1, "", m->tera <= 18 ? m->tera : 0);
     pi(KS("tera_ok"), m->tera < 19);
 
@@ -1472,7 +1493,7 @@ LOCAL void publish_detail_pfx(const char* pfx, const Mon* m) {
         pi(K(KS("m"), j, ".valid"), mv != 0);
         if (!mv) continue;
         MoveInfo mi = move_info(mv);
-        pt(K(KS("m"), j, ".name"), name_or_num(&g_moves, mv, "Mov. "));
+        pt(K(KS("m"), j, ".name"), name_or_num(&g_moves, mv, TR("Mov. ", "Move ")));
         pi(K(KS("m"), j, ".known"), mi.ok);
         publish_type(KS("m"), j, ".t", mi.ok ? mi.type : 0);
         pi(K(KS("m"), j, ".cat"), mi.cat);
@@ -1481,7 +1502,7 @@ LOCAL void publish_detail_pfx(const char* pfx, const Mon* m) {
         if (mi.ok) { s_ch(&s, '/'); s_u(&s, mi.pp * (5 + m->ppups[j]) / 5, 0); }
         pt(K(KS("m"), j, ".pp"), g_val);
         s_init(&s, g_val, sizeof(g_val));
-        if (mi.ok && mi.power) { s_cat(&s, "Pot. "); s_u(&s, mi.power, 0); }
+        if (mi.ok && mi.power) { s_cat(&s, TR("Pot. ", "Pow. ")); s_u(&s, mi.power, 0); }
         pt(K(KS("m"), j, ".pow"), g_val);
     }
 
@@ -1498,8 +1519,8 @@ LOCAL void publish_detail_pfx(const char* pfx, const Mon* m) {
             if (mul == 0) { list = p_im; n = &nim; x = "x0"; lv = 4; }
             else if (mul == 16) { list = p_wk; n = &nwk; x = "x4"; lv = 0; }
             else if (mul == 8) { list = p_wk; n = &nwk; x = "x2"; lv = 1; }
-            else if (mul == 2) { list = p_rs; n = &nrs; x = "x0,5"; lv = 2; }
-            else if (mul == 1) { list = p_rs; n = &nrs; x = "x0,25"; lv = 3; }
+            else if (mul == 2) { list = p_rs; n = &nrs; x = TR("x0,5", "x0.5"); lv = 2; }
+            else if (mul == 1) { list = p_rs; n = &nrs; x = TR("x0,25", "x0.25"); lv = 3; }
             if (!list) continue;
             publish_type(list, *n, ".t", a);
             pt(K(list, *n, ".x"), x);
@@ -1512,8 +1533,8 @@ LOCAL void publish_detail_pfx(const char* pfx, const Mon* m) {
     }
     pi(KS("wk.n"), nwk); pi(KS("rs.n"), nrs); pi(KS("im.n"), nim);
     /* Battle sheet shows 6 weaknesses and 9 resistances; say how many more there are. */
-    { Str s; s_init(&s, g_val, sizeof(g_val)); if (nwk > 6) { s_cat(&s, "y "); s_u(&s, nwk - 6, 0); s_cat(&s, " más"); } pt(KS("wk.more"), g_val); }
-    { Str s; s_init(&s, g_val, sizeof(g_val)); if (nrs > 9) { s_cat(&s, "y "); s_u(&s, nrs - 9, 0); s_cat(&s, " más"); } pt(KS("rs.more"), g_val); }
+    { Str s; s_init(&s, g_val, sizeof(g_val)); if (nwk > 6) { s_cat(&s, TR("y ", "and ")); s_u(&s, nwk - 6, 0); s_cat(&s, TR(" más", " more")); } pt(KS("wk.more"), g_val); }
+    { Str s; s_init(&s, g_val, sizeof(g_val)); if (nrs > 9) { s_cat(&s, TR("y ", "and ")); s_u(&s, nrs - 9, 0); s_cat(&s, TR(" más", " more")); } pt(KS("rs.more"), g_val); }
     /* Base stats of the species/form. */
     {
         const GPers* pe = base_of(m);
@@ -2105,7 +2126,7 @@ LOCAL void publish_battle(void) {
     pi("sv.scan.pct", S.hi > S.lo ? (s64)((S.cur - S.lo) * 100 / (S.hi - S.lo)) : 0);
     {
         Str s; s_init(&s, g_val, sizeof(g_val));
-        s_cat(&s, "v0.9.0 mapa "); if (g.ow_ok) s_u(&s, g.ow_raw, 0); else s_cat(&s, "?");
+        s_cat(&s, "v0.10.0 mapa "); if (g.ow_ok) s_u(&s, g.ow_raw, 0); else s_cat(&s, "?");
         s_cat(&s, " (vistos");
         for (u32 i = 0; i < S.now_seen; ++i) { s_ch(&s, ' '); s_u(&s, S.ow_seen[i], 0); }
         s_cat(&s, ") | "); s_cat(&s, S.mode ? "COMBATE " : "campo "); s_u(&s, (u64)(S.hi > S.lo ? (S.cur - S.lo) * 100 / (S.hi - S.lo) : 0), 0);
@@ -2166,11 +2187,13 @@ LOCAL void publish_battle(void) {
     if (species_only) pt("sv.opp.status", "");   /* its HP are unknown: never "Debilitado" */
     pi("sv.opp.n", S.nopp);
     {   /* how this rival was found, on the line under the sheet */
-        const char* how = g_has_chosen ? (g_chosen.addr ? "Rival elegido por ti" : "Rival elegido por ti (por nombre)")
-                        : B.sponly ? "Rival detectado por su nombre en pantalla"
-                        : (ns_rival_any() && ns_rival_any() == o->species) ? "Rival detectado por su nombre (datos completos)"
-                        : L.hit ? "Rival detectado por el camino aprendido"
-                        : "Rival supuesto (toca Cambiar si no es)";
+        const char* how = g_has_chosen ? (g_chosen.addr ? TR("Rival elegido por ti", "Opponent chosen by you")
+                                                        : TR("Rival elegido por ti (por nombre)", "Opponent chosen by you (by name)"))
+                        : B.sponly ? TR("Rival detectado por su nombre en pantalla", "Opponent found by its name on screen")
+                        : (ns_rival_any() && ns_rival_any() == o->species)
+                              ? TR("Rival detectado por su nombre (datos completos)", "Opponent found by its name (full data)")
+                        : L.hit ? TR("Rival detectado por el camino aprendido", "Opponent found by the learned path")
+                        : TR("Rival supuesto (toca Cambiar si no es)", "Opponent guessed (tap Change if wrong)");
         pt("sv.opp.how", how);
     }
     pi("sv.opp.lvl_ok", o->stats_ok && !(species_only && !g_sp_level));
@@ -2187,25 +2210,27 @@ LOCAL void publish_battle(void) {
             pi(K("sv.opp.bs", k, ".up"), up); pi(K("sv.opp.bs", k, ".dn"), dn);
         }
         Str s; s_init(&s, g_val, sizeof(g_val));
-        if (pb && mb) { s_cat(&s, "Flechas: frente a tu "); s_cat(&s, mon_name(me)); }
+        if (pb && mb) { s_cat(&s, TR("Flechas: frente a tu ", "Arrows: against your ")); s_cat(&s, mon_name(me)); }
         pt("sv.opp.cmp", g_val);
     }
 
     /* Speed, from the two stats alone (no boosts, items, abilities or priority). */
-    const char* spd = "Velocidad desconocida";
-    if (species_only && !g_sp_level) spd = "Pon su nivel para comparar la velocidad";
+    const char* spd = TR("Velocidad desconocida", "Speed unknown");
+    if (species_only && !g_sp_level) spd = TR("Pon su nivel para comparar la velocidad", "Set its level to compare Speed");
     else if (species_only && o->stats_ok && me->stats_ok) {
         /* its IVs and nature are unknown: compare with the whole range at that level */
         const GPers* pe = base_of(o);
         u32 lv = o->level, b = pe ? pe->base[5] : 0;
         u32 lo = ((2 * b) * lv / 100 + 5) * 90 / 100, hi = ((2 * b + 31) * lv / 100 + 5) * 110 / 100;
         u32 a = me->stat[5];
-        spd = a > hi ? "Actúas primero (sin prioridad)" : a < lo ? "El rival actúa primero"
-                     : "Velocidad pareja: depende del rival";
+        spd = a > hi ? TR("Actúas primero (sin prioridad)", "You move first (no priority)")
+            : a < lo ? TR("El rival actúa primero", "The opponent moves first")
+                     : TR("Velocidad pareja: depende del rival", "Close Speed: depends on the opponent");
     } else if (o->stats_ok && me->stats_ok) {
         u32 a = me->stat[5], b = o->stat[5];
-        spd = a > b ? "Seguramente actúas primero" : a < b ? "Seguramente actúa primero el rival"
-                                                           : "Empate de velocidad";
+        spd = a > b ? TR("Seguramente actúas primero", "You most likely move first")
+            : a < b ? TR("Seguramente actúa primero el rival", "The opponent most likely moves first")
+                    : TR("Empate de velocidad", "Speed tie");
     }
     pt("sv.opp.speed", spd);
 
@@ -2220,10 +2245,11 @@ LOCAL void publish_battle(void) {
         u32 cls = 0;
         if (me->moves[j] && mi.ok && typed && mi.cat != 0) {
             u32 mul = eff(mi.type, t1) * (t2 != t1 ? eff(mi.type, t2) : 2);
-            if (mul == 0) { txt = "No afecta"; cls = 1; }
-            else if (mul <= 2) { txt = mul == 1 ? "x0,25 Poco eficaz" : "x0,5 Poco eficaz"; cls = 2; }
+            if (mul == 0) { txt = TR("No afecta", "No effect"); cls = 1; }
+            else if (mul <= 2) { txt = mul == 1 ? TR("x0,25 Poco eficaz", "x0.25 Resisted")
+                                                : TR("x0,5 Poco eficaz", "x0.5 Resisted"); cls = 2; }
             else if (mul == 4) { txt = "x1"; cls = 3; }
-            else { txt = mul == 16 ? "x4 Súper eficaz" : "x2 Súper eficaz"; cls = 4; }
+            else { txt = mul == 16 ? TR("x4 Súper eficaz", "x4 Super effective") : TR("x2 Súper eficaz", "x2 Super effective"); cls = 4; }
         }
         pt(K("sv.me.m", j, ".eff"), txt);
         pi(K("sv.me.m", j, ".effc"), cls);
@@ -2292,22 +2318,22 @@ LOCAL void publish_battle(void) {
         u32 nl = 0;
         #define LINE(bad_) do { pt(K(lp, nl, ""), line); pi(K(lp, nl, ".bad"), bad_); pi(K(lp, nl, ".ok"), !(bad_)); ++nl; } while (0)
         if (x->best_def_mul <= 2) {
-            s_init(&ls, line, sizeof(line)); s_cat(&ls, x->best_def_mul == 0 ? "Inmune a " : "Resistente a ");
-            s_cat(&ls, name_or_num(&g_types, x->best_def_t, "Tipo ")); LINE(0);
+            s_init(&ls, line, sizeof(line)); s_cat(&ls, x->best_def_mul == 0 ? TR("Inmune a ", "Immune to ") : TR("Resistente a ", "Resists "));
+            s_cat(&ls, name_or_num(&g_types, x->best_def_t, TR("Tipo ", "Type "))); LINE(0);
         }
         if (x->type_mul >= 8) {
-            s_init(&ls, line, sizeof(line)); s_cat(&ls, "Eficaz por tipo ("); s_cat(&ls, name_or_num(&g_types, x->type_t, "Tipo "));
+            s_init(&ls, line, sizeof(line)); s_cat(&ls, TR("Eficaz por tipo (", "Type advantage (")); s_cat(&ls, name_or_num(&g_types, x->type_t, TR("Tipo ", "Type ")));
             s_cat(&ls, x->type_mul >= 16 ? ") x4" : ")"); LINE(0);
         } else if (x->move_mul >= 8) {
-            s_init(&ls, line, sizeof(line)); s_cat(&ls, name_or_num(&g_moves, x->move, "Mov. ")); s_cat(&ls, " supereficaz"); LINE(0);
+            s_init(&ls, line, sizeof(line)); s_cat(&ls, name_or_num(&g_moves, x->move, TR("Mov. ", "Move "))); s_cat(&ls, TR(" supereficaz", " super effective")); LINE(0);
         } else if (x->type_mul <= 2) {
-            s_init(&ls, line, sizeof(line)); s_cat(&ls, "Su tipo es poco eficaz"); LINE(1);
+            s_init(&ls, line, sizeof(line)); s_cat(&ls, TR("Su tipo es poco eficaz", "Its type is not very effective")); LINE(1);
         }
-        if (x->fast > 0) { s_init(&ls, line, sizeof(line)); s_cat(&ls, "Más rápido"); LINE(0); }
+        if (x->fast > 0) { s_init(&ls, line, sizeof(line)); s_cat(&ls, TR("Más rápido", "Faster")); LINE(0); }
         if (x->worst_mul >= 8 && nl < 4) {
-            s_init(&ls, line, sizeof(line)); s_cat(&ls, "Débil frente a "); s_cat(&ls, name_or_num(&g_types, x->worst_t, "Tipo ")); LINE(1);
+            s_init(&ls, line, sizeof(line)); s_cat(&ls, TR("Débil frente a ", "Weak to ")); s_cat(&ls, name_or_num(&g_types, x->worst_t, TR("Tipo ", "Type "))); LINE(1);
         }
-        if (nl == 0) { s_init(&ls, line, sizeof(line)); s_cat(&ls, "Sin ventaja clara"); LINE(0); }
+        if (nl == 0) { s_init(&ls, line, sizeof(line)); s_cat(&ls, TR("Sin ventaja clara", "No clear advantage")); LINE(0); }
         for (; nl < 4; ++nl) { pt(K(lp, nl, ""), ""); pi(K(lp, nl, ".bad"), 0); pi(K(lp, nl, ".ok"), 0); }
         #undef LINE
         #undef SK
@@ -3004,8 +3030,8 @@ LOCAL void pages_refresh(const EdenDsmodHostApi* h) {
 }
 
 /* ---------- publishing the visible page ---------- */
-LOCAL void s_dec1(Str* s, u32 v, const char* unit) { /* 123 -> "12,3 unit" */
-    s_u(s, v / 10, 0); s_ch(s, ','); s_u(s, v % 10, 0); s_ch(s, ' '); s_cat(s, unit);
+LOCAL void s_dec1(Str* s, u32 v, const char* unit) { /* 123 -> "12,3 unit" ("12.3" in English) */
+    s_u(s, v / 10, 0); s_ch(s, g_en ? '.' : ','); s_u(s, v % 10, 0); s_ch(s, ' '); s_cat(s, unit);
 }
 LOCAL void publish_bag(void) {
     if (ui.pouch >= POUCHES) ui.pouch = 0;
@@ -3027,7 +3053,7 @@ LOCAL void publish_bag(void) {
         pi(K("sv.bag.", i, ".valid"), ok);
         if (!ok) continue;
         const BagItem* it = &g_bag[ui.pouch][at];
-        pt(K("sv.bag.", i, ".name"), name_or_num(&g_items, it->id, "Objeto "));
+        pt(K("sv.bag.", i, ".name"), name_or_num(&g_items, it->id, TR("Objeto ", "Item ")));
         pi(K("sv.bag.", i, ".count"), it->count);
         pi(K("sv.bag.", i, ".id"), it->id);
         pi(K("sv.bag.", i, ".many"), ui.pouch != 8 && ui.pouch != 5); /* key items / TMs: no "x1" */
@@ -3093,12 +3119,12 @@ LOCAL void publish_dex(void) {
         pt("sv.dx.text", namelist_get(&g_zukan, intl));
         Str s; char b[32];
         s_init(&s, b, sizeof(b)); /* personal height is in cm */
-        s_u(&s, pe->height / 100, 0); s_ch(&s, ','); s_u(&s, (pe->height % 100) / 10, 0);
+        s_u(&s, pe->height / 100, 0); s_ch(&s, g_en ? '.' : ','); s_u(&s, (pe->height % 100) / 10, 0);
         if (pe->height % 10) s_u(&s, pe->height % 10, 0);
         s_cat(&s, " m"); pt("sv.dx.height", b);
         s_init(&s, b, sizeof(b)); s_dec1(&s, pe->weight, "kg"); pt("sv.dx.weight", b);
         pi("sv.dx.t1", pe->t1); pi("sv.dx.t2", pe->t2); pi("sv.dx.dual", pe->t2 != pe->t1);
-        pt("sv.dx.t1n", name_or_num(&g_types, pe->t1, "Tipo ")); pt("sv.dx.t2n", name_or_num(&g_types, pe->t2, "Tipo "));
+        pt("sv.dx.t1n", name_or_num(&g_types, pe->t1, TR("Tipo ", "Type "))); pt("sv.dx.t2n", name_or_num(&g_types, pe->t2, TR("Tipo ", "Type ")));
     } else {
         pt("sv.dx.text", nat ? (st == 1 ? "Aún no has visto a este Pokémon." : "Aún no sabes nada de este Pokémon.") : "");
     }
@@ -3107,9 +3133,11 @@ LOCAL u32 g_map_zoom; /* 0..3 = x1, x2, x4, x8 (module action "map_zoom" +1 / -1
 LOCAL u32 g_map_swap = 3; /* tile orientation mode, see map_view (module action "map_flip") */
 LOCAL int g_map_rot;       /* "heading up" asked for (module action "map_rot") */
 LOCAL void publish_place(void) {
-    static const char* const fields[3] = {"Paldea", "Kitakami", "Instituto Arándano"};
+    static const char* const fields_es[3] = {"Paldea", "Kitakami", "Instituto Arándano"};
+    static const char* const fields_en[3] = {"Paldea", "Kitakami", "Blueberry Academy"};
+    const char* const* fields = g_en ? fields_en : fields_es;
     pi("sv.map.ok", g_place_now.ok);
-    pt("sv.map.place", g_place_now.ok ? name_or_num(&g_place, (u32)g_place_now.location, "Lugar ") : "Desconocido");
+    pt("sv.map.place", g_place_now.ok ? name_or_num(&g_place, (u32)g_place_now.location, TR("Lugar ", "Place ")) : TR("Desconocido", "Unknown"));
     pt("sv.map.field", g_place_now.field_ok && g_place_now.field >= 0 && g_place_now.field < 3 ? fields[g_place_now.field] : "");
     pi("sv.map.coords_ok", g_place_now.coords_ok);
     pi("sv.map.x", (s64)g_place_now.x);
@@ -3176,7 +3204,9 @@ LOCAL void publish_place(void) {
     pi("sv.map.mx", inview ? (s64)(mu * MAP_PX) : 0);
     pi("sv.map.my", inview ? (s64)(mv * MAP_PX) : 0);
     {
-        static const char* const dirs[8] = {"Norte", "Noreste", "Este", "Sureste", "Sur", "Suroeste", "Oeste", "Noroeste"};
+        static const char* const dirs_es[8] = {"Norte", "Noreste", "Este", "Sureste", "Sur", "Suroeste", "Oeste", "Noroeste"};
+        static const char* const dirs_en[8] = {"North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"};
+        const char* const* dirs = g_en ? dirs_en : dirs_es;
         pt("sv.map.dir", live && PS.dir_ok ? dirs[((PS.heading + 22) / 45) % 8] : "");
     }
     {   /* place names inside the view: the zoom level each one is meant for */
@@ -3370,20 +3400,26 @@ LOCAL void publish_cursor(const EdenDsmodHostApi* h) {
     pi("sv.cur.idx", CUR.idx_ok ? CUR.idx : -1);
     Str d; s_init(&d, g_val, sizeof(g_val));
     if (CUR.found) {
-        s_cat(&d, CUR.idx_ok ? "¡Encontrado! El ataque marcado se resalta abajo. Mándame una foto de esta línea."
-                             : "Encontrado, pero ahora no se lee (normal fuera del menú de ataques).");
+        s_cat(&d, CUR.idx_ok ? TR("¡Encontrado! El ataque marcado se resalta abajo. Mándame una foto de esta línea.",
+                                  "Found! The selected move is highlighted below. Please report this line.")
+                             : TR("Encontrado, pero ahora no se lee (normal fuera del menú de ataques).",
+                                  "Found, but not readable right now (normal outside the move menu)."));
     } else if (CUR.phase == 1 || CUR.phase == 3) {
         u64 done = CUR.pos > CUR.lo ? (CUR.pos - CUR.lo) * 100 / (2 * SCAN_HALF) : 0;
-        s_cat(&d, "Buscando... no muevas el cursor ("); s_u(&d, done, 0); s_cat(&d, " %)");
+        s_cat(&d, TR("Buscando... no muevas el cursor (", "Searching... don't move the cursor (")); s_u(&d, done, 0); s_cat(&d, " %)");
     } else if (CUR.phase == 2) {
-        s_cat(&d, "Bien. Ahora mueve el cursor a OTRO ataque y toca su número.");
+        s_cat(&d, TR("Bien. Ahora mueve el cursor a OTRO ataque y toca su número.",
+                     "Good. Now move the cursor to ANOTHER move and tap its number."));
     } else if (CUR.phase == 4) {
-        s_cat(&d, "Quedan "); s_u(&d, CUR.n, 0); s_cat(&d, CUR.overflow ? "+" : "");
-        s_cat(&d, " posibles. Mueve el cursor a otro ataque y toca su número.");
+        s_cat(&d, TR("Quedan ", "")); s_u(&d, CUR.n, 0); s_cat(&d, CUR.overflow ? "+" : "");
+        s_cat(&d, TR(" posibles. Mueve el cursor a otro ataque y toca su número.",
+                     " left. Move the cursor to another move and tap its number."));
     } else if (CUR.none) {
-        s_cat(&d, "No ha salido nada. Toca REINICIAR y prueba otra vez (sin mover el cursor mientras busca).");
+        s_cat(&d, TR("No ha salido nada. Toca REINICIAR y prueba otra vez (sin mover el cursor mientras busca).",
+                     "Nothing found. Tap RESET and try again (don't move the cursor while it searches)."));
     } else {
-        s_cat(&d, "Abre «Luchar», pon el cursor en un ataque y toca su número aquí.");
+        s_cat(&d, TR("Abre «Luchar», pon el cursor en un ataque y toca su número aquí.",
+                     "Open \"Fight\", put the cursor on a move and tap its number here."));
     }
     pt("sv.cur.text", g_val);
     s_init(&d, g_val, sizeof(g_val));
@@ -3491,16 +3527,20 @@ LOCAL void publish(const EdenDsmodHostApi* h) {
     int have_data = (g_gpers_n || g_personal_n) && (g_gmove_n || g_movedata_n) && g_moves.count > 1;
     {
         Str s; s_init(&s, g_status_problem, sizeof(g_status_problem));
-        s_cat(&s, "Sin datos del juego - "); s_cat(&s, g_game_why[0] ? g_game_why : "motivo desconocido");
+        s_cat(&s, TR("Sin datos del juego - ", "No game data - "));
+        s_cat(&s, g_game_why[0] ? g_game_why : TR("motivo desconocido", "unknown reason"));
     }
     pt("sv.status",
-       !g.build_ok      ? "Versión del juego no soportada (hace falta la 3.0.0 o 3.0.1)"
-       : !g.keytable_ok ? "Esperando a la partida..."
-       : !g.party_ok    ? "Leyendo equipo..."
-       : g_game_step < GAME_STEPS ? "Leyendo datos del juego..."
+       !g.build_ok      ? TR("Versión del juego no soportada (hace falta la 3.0.0 o 3.0.1)",
+                             "Unsupported game version (3.0.0 or 3.0.1 needed)")
+       : !g.keytable_ok ? TR("Esperando a la partida...", "Waiting for your save...")
+       : !g.party_ok    ? TR("Leyendo equipo...", "Reading your team...")
+       : g_game_step < GAME_STEPS ? TR("Leyendo datos del juego...", "Reading the game data...")
        : !have_data     ? g_status_problem
        : g.cross_ok     ? "OK"
-                        : "OK - aviso: MyStatus no coincide");
+                        : TR("OK - aviso: MyStatus no coincide", "OK - warning: MyStatus mismatch"));
+    pi("sv.lang_en", lang_auto_en());
+    pi("sv.en", g_en);
     pi("sv.warn", !(g.build_ok && g.keytable_ok && g.party_ok && g.cross_ok && have_data));
     if (g.money_ok) pi("sv.money", g.money);
     if (g.lp_ok) pi("sv.lp", g.lp);
@@ -3584,6 +3624,7 @@ LOCAL void load_reference(const EdenDsmodHostApi* h) {
 
 LOCAL void sample(void* inst, const EdenDsmodHostApi* h) {
     (void)inst;
+    lang_update(h);
     if (g.build_ok) {
         u64 now = h->get_tick ? h->get_tick(h->userdata) : g.next_refresh;
         if (now >= g.next_refresh) {

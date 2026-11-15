@@ -85,8 +85,9 @@ def main(ds, page_id, snap_path, user_dir, out):
             import re
             e = d["expr"].replace("&&", " and ").replace("||", " or ")
             e = re.sub(r"!(?!=)", " not ", e)
-            e = re.sub(r"[A-Za-z_@][A-Za-z0-9_.:@]*", lambda mm: mm.group(0) if mm.group(0) in ("and", "or", "not")
-                       else repr(snap.get(mm.group(0), 0) if isinstance(snap.get(mm.group(0), 0), int) else 0), e)
+            num_of = lambda k: snap.get(k, 0) if isinstance(snap.get(k, 0), int) else 0
+            e = re.sub(r"'([^']*)'|[A-Za-z_@][A-Za-z0-9_.:@]*", lambda mm: repr(num_of(mm.group(1))) if mm.group(1)
+                       is not None else mm.group(0) if mm.group(0) in ("and", "or", "not") else repr(num_of(mm.group(0))), e)
             snap[d["name"]] = int(bool(eval(e)))
         elif "all_nonzero" in d:
             snap[d["name"]] = int(all(snap.get(n, 0) for n in d["all_nonzero"]))

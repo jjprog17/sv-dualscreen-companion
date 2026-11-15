@@ -400,9 +400,11 @@ def main():
     else:
         pers_entry = ("avalon/data/personal_array.bin", personal, -1, len(personal))
     waza = waza_array(core, moves_csv)
-    lists = {"monsname": "other/es/text_Species_es.txt", "wazaname": "other/es/text_Moves_es.txt",
-             "itemname": "items/text_Items_es.txt", "tokusei": "other/es/text_Abilities_es.txt",
-             "seikaku": "other/es/text_Natures_es.txt", "typename": "other/es/text_Types_es.txt"}
+    en = "--english" in sys.argv   # an English game instead (message/dat/English, PKHeX's English lists)
+    lc, LANG = ("en", "English") if en else ("es", "Spanish")
+    lists = {"monsname": f"other/{lc}/text_Species_{lc}.txt", "wazaname": f"other/{lc}/text_Moves_{lc}.txt",
+             "itemname": f"items/text_Items_{lc}.txt", "tokusei": f"other/{lc}/text_Abilities_{lc}.txt",
+             "seikaku": f"other/{lc}/text_Natures_{lc}.txt", "typename": f"other/{lc}/text_Types_{lc}.txt"}
     texts = []
     for name, src in lists.items():
         lines = open(os.path.join(core, "Resources/text", src), encoding="utf-8").read().split("\n")
@@ -410,21 +412,25 @@ def main():
             i2n = int2nat()
             lines = [lines[i2n.get(i, i)] if i2n.get(i, i) < len(lines) else "" for i in range(len(lines))]
         d = text_dat(lines, inject=(name == "monsname"))
-        texts.append((f"message/dat/Spanish/common/{name}.dat", d, -1, len(d)))
+        texts.append((f"message/dat/{LANG}/common/{name}.dat", d, -1, len(d)))
     # Pokédex / map texts (synthetic: the real ones are game text), internal species order
     extra = {"zkn_type": [f"Pokémon Prueba {i}" for i in range(1400)],
              "zukan_comment_A": [f"Descripción de la especie {i}. Vive en Paldea y le gusta el sol." for i in range(1400)],
              "place_name": [f"Lugar {i}" for i in range(400)]}
+    if en:
+        extra = {"zkn_type": [f"Test Pokémon {i}" for i in range(1400)],
+                 "zukan_comment_A": [f"Description of species {i}. It lives in Paldea and likes the sun." for i in range(1400)],
+                 "place_name": [f"Place {i}" for i in range(400)]}
     for name, lines in extra.items():
         d = text_dat(lines)
-        texts.append((f"message/dat/Spanish/common/{name}.dat", d, -1, len(d)))
+        texts.append((f"message/dat/{LANG}/common/{name}.dat", d, -1, len(d)))
     # the map's own place names: texts, labels and where they go (v0.7.2)
-    ymap_lines = ["Nada", "Pueblo Artesanía", "Cueva Escondida"]
+    ymap_lines = ["Nada", "Pueblo Artesanía", "Cueva Escondida"] if not en else ["None", "Artisan Town", "Hidden Cave"]
     ymap_labels = ["PLACE_NONE", "PLACE_T01", "PLACE_CAVE"]
     d = text_dat(ymap_lines)
-    texts.append(("message/dat/Spanish/common/ymap_place_name.dat", d, -1, len(d)))
+    texts.append((f"message/dat/{LANG}/common/ymap_place_name.dat", d, -1, len(d)))
     t = ahtb(ymap_labels)
-    texts.append(("message/dat/Spanish/common/ymap_place_name.tbl", t, -1, len(t)))
+    texts.append((f"message/dat/{LANG}/common/ymap_place_name.tbl", t, -1, len(t)))
     pn = place_name_fb([("T01", "PLACE_T01", 1300.0, 80.0, -2300.0, True, True, True),
                         ("CAVE", "PLACE_CAVE", 4000.0, 20.0, -1000.0, False, False, True)])
     texts.append(("world/data/ui/ymap/ymap_place_name_data/ymap_place_name_data_array.bin", pn, -1, len(pn)))
