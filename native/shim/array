@@ -1,0 +1,14 @@
+/* Minimal <array> for the freestanding build (bc_decoder only needs std::array and std::swap). */
+#pragma once
+#include <stddef.h>
+namespace std {
+template <class T, size_t N> struct array {
+    T _v[N];
+    T& operator[](size_t i) { return _v[i]; }
+    const T& operator[](size_t i) const { return _v[i]; }
+    constexpr size_t size() const { return N; }
+    T* data() { return _v; }
+    const T* data() const { return _v; }
+};
+template <class T> inline void swap(T& a, T& b) { T t = a; a = b; b = t; }
+}
